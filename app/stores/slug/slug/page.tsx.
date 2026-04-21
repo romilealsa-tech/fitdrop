@@ -1,0 +1,104 @@
+"use client"
+import { useCart } from "../../../app/CartContext"
+
+const storeData = {
+  zara: {
+    name: "Zara",
+    category: "Fashion & Basics",
+    products: [
+      { id: 1, name: "Oversized Blazer", price: "$89.99", tag: "New" },
+      { id: 2, name: "Wide Leg Trousers", price: "$49.99", tag: "Trending" },
+      { id: 3, name: "Ribbed Knit Top", price: "$29.99", tag: "" },
+      { id: 4, name: "Leather Mini Skirt", price: "$69.99", tag: "New" },
+      { id: 5, name: "Trench Coat", price: "$129.99", tag: "Trending" },
+      { id: 6, name: "Satin Slip Dress", price: "$59.99", tag: "" },
+    ]
+  },
+  uniqlo: {
+    name: "Uniqlo",
+    category: "Essentials & Comfort",
+    products: [
+      { id: 1, name: "Heattech Turtleneck", price: "$34.99", tag: "Bestseller" },
+      { id: 2, name: "Ultra Light Down Jacket", price: "$79.99", tag: "New" },
+      { id: 3, name: "Relaxed Fit Chinos", price: "$44.99", tag: "" },
+      { id: 4, name: "Fleece Pullover", price: "$39.99", tag: "Trending" },
+      { id: 5, name: "Cotton Crew T-Shirt", price: "$14.99", tag: "" },
+      { id: 6, name: "Wide Fit Jeans", price: "$49.99", tag: "New" },
+    ]
+  },
+  hm: {
+    name: "H&M",
+    category: "Trends & Streetwear",
+    products: [
+      { id: 1, name: "Cargo Pants", price: "$39.99", tag: "Trending" },
+      { id: 2, name: "Graphic Hoodie", price: "$34.99", tag: "New" },
+      { id: 3, name: "Denim Jacket", price: "$49.99", tag: "" },
+      { id: 4, name: "Bodycon Dress", price: "$29.99", tag: "Trending" },
+      { id: 5, name: "Oversized Tee", price: "$19.99", tag: "" },
+      { id: 6, name: "Pleated Midi Skirt", price: "$34.99", tag: "New" },
+    ]
+  },
+}
+
+export default function StorePage({ params }: { params: { slug: string } }) {
+  const { addToCart, cart } = useCart()
+  const store = storeData[params.slug as keyof typeof storeData] || {
+    name: params.slug.charAt(0).toUpperCase() + params.slug.slice(1),
+    category: "Fashion",
+    products: []
+  }
+
+  const cartCount = cart.reduce((sum: number, i: any) => sum + i.qty, 0)
+
+  return (
+    <main className="min-h-screen bg-black text-white">
+      <nav className="flex justify-between items-center px-8 py-4 border-b border-zinc-800">
+        <a href="/" className="text-2xl font-bold tracking-widest">FIT DROP</a>
+        <div className="flex gap-6 text-sm text-zinc-400 items-center">
+          <a href="/">Stores</a>
+          <a href="#">New Drops</a>
+          <a href="/cart" className="text-white flex items-center gap-1">
+            Cart {cartCount > 0 && <span className="bg-white text-black rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">{cartCount}</span>}
+          </a>
+        </div>
+      </nav>
+
+      <div className="px-8 py-8">
+        <a href="/" className="text-zinc-500 text-sm hover:text-white mb-6 inline-block">← Back to Stores</a>
+        <div className="flex items-center gap-4 mb-10">
+          <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center">
+            <span className="text-black font-bold text-xl">{store.name[0]}</span>
+          </div>
+          <div>
+            <h2 className="text-3xl font-bold">{store.name}</h2>
+            <p className="text-zinc-400">{store.category}</p>
+          </div>
+        </div>
+
+        <h3 className="text-xl font-semibold mb-6">Available Now</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {store.products.map((product) => (
+            <div key={product.id} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 hover:border-zinc-600 transition">
+              <div className="w-full h-32 bg-zinc-800 rounded-xl mb-4 flex items-center justify-center">
+                <span className="text-zinc-600 text-sm">📦</span>
+              </div>
+              <div className="flex justify-between items-start mb-2">
+                <h4 className="font-semibold">{product.name}</h4>
+                {product.tag && (
+                  <span className="text-xs bg-white text-black px-2 py-1 rounded-full">{product.tag}</span>
+                )}
+              </div>
+              <p className="text-zinc-400 text-sm mb-4">{product.price}</p>
+              <button
+                onClick={() => addToCart({ ...product, store: store.name })}
+                className="w-full bg-white text-black py-2 rounded-full text-sm font-semibold hover:bg-zinc-200 transition"
+              >
+                Add to Cart
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </main>
+  )
+}

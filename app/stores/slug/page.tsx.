@@ -31,11 +31,11 @@ export default function Home() {
         <h3 className="text-2xl font-bold mb-8">Available Stores</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {stores.map((store) => (
-            <a key={store.name} href={`/stores/${store.slug}`} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 hover:border-zinc-600 transition block no-underline">
+            <a key={store.name} href={`/stores/${store.slug}`} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 hover:border-zinc-600 cursor-pointer transition block">
               <div className="w-12 h-12 bg-white rounded-full mb-4 flex items-center justify-center">
                 <span className="text-black font-bold text-sm">{store.name[0]}</span>
               </div>
-              <h4 className="text-lg font-semibold mb-1 text-white">{store.name}</h4>
+              <h4 className="text-lg font-semibold mb-1">{store.name}</h4>
               <p className="text-zinc-400 text-sm mb-4">{store.category}</p>
               <div className="flex justify-between text-xs text-zinc-500">
                 <span>🕐 {store.time}</span>
