@@ -1,6 +1,6 @@
 "use client"
 import { useRef } from "react"
-
+import { SignOutButton } from "@clerk/nextjs"
 const stores = [
   { name: "Zara", slug: "zara", category: "Fashion & Basics", time: "30-45 min", fee: "$2.99" },
   { name: "Uniqlo", slug: "uniqlo", category: "Essentials & Comfort", time: "25-40 min", fee: "$1.99" },
@@ -22,8 +22,9 @@ export default function HomePage() {
           <button onClick={scrollToStores} className="hover:text-white transition">Stores</button>
           <a href="/new-drops" className="hover:text-white transition">New Drops</a>
           <a href="/cart" className="hover:text-white transition">Cart</a>
-          <a href="/" className="text-zinc-500 hover:text-white transition">Sign Out</a>
-        </div>
+<SignOutButton>
+  <button className="text-zinc-500 hover:text-white transition">Sign Out</button>
+</SignOutButton>        </div>
       </nav>
 
       <section className="flex flex-col items-center justify-center h-[80vh] text-center px-4">
