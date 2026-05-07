@@ -1,44 +1,63 @@
 "use client"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useCart } from "../CartContext"
 
 export default function CartPage() {
   const { cart, removeFromCart, total } = useCart()
+  const router = useRouter()
+
+  const handleCheckout = () => {
+    router.push("/checkout")
+  }
+
+  const delivery = 3.99
+  const tax = total * 0.08875
+  const orderTotal = total + delivery + tax
 
   return (
-    <main className="min-h-screen bg-black text-white">
-      <nav className="flex justify-between items-center px-8 py-4 border-b border-zinc-800">
-        <a href="/" className="text-2xl font-bold tracking-widest">FIT DROP</a>
-        <div className="flex gap-6 text-sm text-zinc-400">
-          <a href="/">Stores</a>
-          <a href="#">New Drops</a>
-          <a href="/cart" className="text-white">Cart</a>
+    <main className="min-h-screen bg-[#111111] text-[#f5f0e8]">
+
+      {/* Nav */}
+      <nav className="flex justify-between items-center px-8 py-4 border-b border-[#2a2a2a] sticky top-0 bg-[#111111] z-10">
+        <Link href="/home" className="text-2xl font-bold tracking-widest text-[#f5f0e8]">FIT DROP</Link>
+        <div className="flex gap-6 text-sm text-[#6b6b6b]">
+          <Link href="/home" className="hover:text-[#f5f0e8] transition">Stores</Link>
+          <Link href="/new-drops" className="hover:text-[#f5f0e8] transition">New Drops</Link>
+          <Link href="/cart" className="text-[#c9a96e]">Cart</Link>
         </div>
       </nav>
 
       <div className="px-8 py-8 max-w-2xl mx-auto">
-        <a href="/" className="text-zinc-500 text-sm hover:text-white mb-6 inline-block">← Back to Stores</a>
-        <h2 className="text-3xl font-bold mb-8">Your Cart</h2>
+        <h2 className="text-3xl font-bold mb-8 text-[#f5f0e8]">Your Cart</h2>
 
         {cart.length === 0 ? (
           <div className="text-center py-20">
-            <p className="text-zinc-500 text-lg mb-4">Your cart is empty</p>
-            <a href="/" className="bg-white text-black px-8 py-3 rounded-full font-semibold hover:bg-zinc-200 inline-block">
+            <p className="text-[#6b6b6b] text-lg mb-2">Your cart is empty</p>
+            <p className="text-[#3a3a3a] text-sm mb-8">Add items from your favorite stores to get started</p>
+            <Link
+              href="/home"
+              className="bg-[#c9a96e] text-[#111111] px-8 py-3 rounded-full font-semibold hover:bg-[#b8924a] transition inline-block"
+            >
               Browse Stores
-            </a>
+            </Link>
           </div>
         ) : (
-          <>
+          <div>
             <div className="flex flex-col gap-4 mb-8">
               {cart.map((item: any) => (
-                <div key={`${item.store}-${item.id}`} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 flex justify-between items-center">
+                <div
+                  key={`${item.store}-${item.id}`}
+                  className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl p-6 flex justify-between items-center"
+                >
                   <div>
-                    <p className="font-semibold">{item.name}</p>
-                    <p className="text-zinc-400 text-sm">{item.store} · Qty: {item.qty}</p>
-                    <p className="text-white text-sm mt-1">{item.price}</p>
+                    <p className="font-semibold text-[#f5f0e8]">{item.name}</p>
+                    <p className="text-[#6b6b6b] text-sm mt-0.5">{item.store} · Qty: {item.qty}</p>
+                    <p className="text-[#c9a96e] text-sm mt-1 font-medium">{item.price}</p>
                   </div>
                   <button
                     onClick={() => removeFromCart(item.id, item.store)}
-                    className="text-zinc-500 hover:text-white text-sm transition"
+                    className="text-[#3a3a3a] hover:text-red-400 text-sm transition"
                   >
                     Remove
                   </button>
@@ -46,16 +65,31 @@ export default function CartPage() {
               ))}
             </div>
 
-            <div className="border-t border-zinc-800 pt-6">
-              <div className="flex justify-between text-lg font-semibold mb-6">
-                <span>Total</span>
-                <span>${total.toFixed(2)}</span>
+            <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl p-6 mb-6">
+              <div className="flex flex-col gap-2 text-sm">
+                <div className="flex justify-between text-[#6b6b6b]">
+                  <span>Subtotal</span><span>${total.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-[#6b6b6b]">
+                  <span>Delivery</span><span>${delivery.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-[#6b6b6b]">
+                  <span>Tax (NYC)</span><span>${tax.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between font-bold text-[#f5f0e8] text-base mt-2 border-t border-[#2a2a2a] pt-3">
+                  <span>Total</span>
+                  <span className="text-[#c9a96e]">${orderTotal.toFixed(2)}</span>
+                </div>
               </div>
-              <button className="w-full bg-white text-black py-4 rounded-full font-bold text-lg hover:bg-zinc-200 transition">
-                Checkout
-              </button>
             </div>
-          </>
+
+            <button
+              onClick={handleCheckout}
+              className="w-full bg-[#c9a96e] text-[#111111] py-4 rounded-full font-bold text-lg hover:bg-[#b8924a] transition"
+            >
+              Checkout
+            </button>
+          </div>
         )}
       </div>
     </main>
