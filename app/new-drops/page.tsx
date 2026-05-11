@@ -13,44 +13,44 @@ export default function NewDrops() {
 
   const tagColor = (tag: string) => {
     if (tag === "Limited") return "bg-red-500 text-white"
-    if (tag === "Trending") return "bg-[#f5f0e8] text-[#111111]"
-    return "bg-[#c9a96e] text-[#111111]"
+    if (tag === "Trending") return "bg-[#E8E8EA] text-[#0D0D0F]"
+    return "bg-[#2DD4BF] text-[#0D0D0F]"
   }
 
   return (
-    <main className="min-h-screen bg-[#111111] text-[#f5f0e8]">
+    <main className="min-h-screen bg-[#0D0D0F] text-[#E8E8EA]">
 
       {/* Nav */}
-      <nav className="flex justify-between items-center px-8 py-4 border-b border-[#2a2a2a] sticky top-0 bg-[#111111] z-10">
-        <Link href="/home" className="text-2xl font-bold tracking-widest text-[#f5f0e8]">FIT DROP</Link>
+      <nav className="flex justify-between items-center px-8 py-4 border-b border-[#2B2B2E] sticky top-0 bg-[#0D0D0F] z-10">
+        <Link href="/home" className="text-2xl font-bold tracking-widest text-[#E8E8EA]">FIT DROP</Link>
         <div className="flex gap-6 text-sm text-[#6b6b6b]">
-          <Link href="/home" className="hover:text-[#f5f0e8] transition">Stores</Link>
-          <Link href="/new-drops" className="text-[#c9a96e]">New Drops</Link>
-          <Link href="/cart" className="hover:text-[#f5f0e8] transition">Cart</Link>
+          <Link href="/home" className="hover:text-[#E8E8EA] transition">Stores</Link>
+          <Link href="/new-drops" className="text-[#2DD4BF]">New Drops</Link>
+          <Link href="/cart" className="hover:text-[#E8E8EA] transition">Cart</Link>
         </div>
       </nav>
 
       <div className="px-8 py-8">
-        <p className="text-[#c9a96e] uppercase tracking-widest text-sm mb-2 font-medium">What's hot right now</p>
-        <h2 className="text-4xl font-bold mb-10 text-[#f5f0e8]">New Drops 🔥</h2>
+        <p className="text-[#2DD4BF] uppercase tracking-widest text-sm mb-2 font-medium">What's hot right now</p>
+        <h2 className="text-4xl font-bold mb-10 text-[#E8E8EA]">New Drops 🔥</h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {drops.map((drop) => (
             <Link
               key={drop.item}
               href={`/stores/${drop.slug}`}
-              className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl p-6 hover:border-[#c9a96e] transition block"
+              className="bg-[#1C1C1E] border border-[#2B2B2E] rounded-2xl p-6 hover:border-[#2DD4BF] transition block"
             >
               <div className="flex justify-between items-start mb-4">
                 <span className="text-xs text-[#6b6b6b]">{drop.store}</span>
-                <span className={`text-xs px-2 py-1 rounded-full font-semibold ${tagColor(drop.tag)}`}>
+                <span className={`text-xs px-2 py-1 rounded-full font-bold ${tagColor(drop.tag)}`}>
                   {drop.tag}
                 </span>
               </div>
-              <div className="w-full h-32 bg-[#222222] rounded-xl mb-4 flex items-center justify-center">
+              <div className="w-full h-32 bg-[#2B2B2E] rounded-xl mb-4 flex items-center justify-center">
                 <span className="text-3xl">🔥</span>
               </div>
-              <h4 className="font-semibold text-[#f5f0e8] mb-1">{drop.item}</h4>
+              <h4 className="font-semibold text-[#E8E8EA] mb-1">{drop.item}</h4>
               <p className="text-[#6b6b6b] text-sm">{drop.desc}</p>
             </Link>
           ))}
