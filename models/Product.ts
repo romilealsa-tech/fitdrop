@@ -8,6 +8,10 @@ const ProductSchema = new mongoose.Schema({
   tag: { type: String, default: "" },
   inStock: { type: Boolean, default: true },
   category: { type: String, default: "" },
+  description: { type: String, default: "" },
+  sizes: { type: [String], default: [] },
+  colors: { type: [String], default: [] },
+  images: { type: [String], default: [] },
 }, { timestamps: true })
 
 export default mongoose.models.Product || mongoose.model("Product", ProductSchema)
