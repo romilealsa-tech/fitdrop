@@ -38,7 +38,7 @@ export default function AdminLogin() {
         {/* Logo */}
         <div className="text-center mb-10">
           <h1 className="text-3xl font-bold tracking-widest text-[#E8E8EA] mb-2">FIT DROP</h1>
-          <p className="text-[#2DD4BF] text-sm uppercase tracking-widest font-medium">Brand Portal</p>
+          <p className="text-[#7EC8B8] text-sm uppercase tracking-widest font-medium">Brand Portal</p>
         </div>
 
         {/* Card */}
@@ -54,7 +54,7 @@ export default function AdminLogin() {
               value={email}
               onChange={e => setEmail(e.target.value)}
               onKeyDown={e => e.key === "Enter" && handleLogin()}
-              className="w-full bg-[#0D0D0F] border border-[#2B2B2E] rounded-xl px-4 py-3 text-[#E8E8EA] text-sm placeholder-[#6b6b6b] focus:outline-none focus:border-[#2DD4BF] transition"
+              className="w-full bg-[#0D0D0F] border border-[#2B2B2E] rounded-xl px-4 py-3 text-[#E8E8EA] text-sm placeholder-[#6b6b6b] focus:outline-none focus:border-[#7EC8B8] transition"
             />
           </div>
 
@@ -66,7 +66,7 @@ export default function AdminLogin() {
               value={password}
               onChange={e => setPassword(e.target.value)}
               onKeyDown={e => e.key === "Enter" && handleLogin()}
-              className="w-full bg-[#0D0D0F] border border-[#2B2B2E] rounded-xl px-4 py-3 text-[#E8E8EA] text-sm placeholder-[#6b6b6b] focus:outline-none focus:border-[#2DD4BF] transition"
+              className="w-full bg-[#0D0D0F] border border-[#2B2B2E] rounded-xl px-4 py-3 text-[#E8E8EA] text-sm placeholder-[#6b6b6b] focus:outline-none focus:border-[#7EC8B8] transition"
             />
           </div>
 
@@ -79,7 +79,7 @@ export default function AdminLogin() {
           <button
             onClick={handleLogin}
             disabled={loading}
-            className="w-full bg-[#2DD4BF] text-[#0D0D0F] py-3 rounded-full font-bold hover:bg-[#22b8a4] transition disabled:opacity-50"
+            className="w-full bg-[#7EC8B8] text-[#0D0D0F] py-3 rounded-full font-bold hover:bg-[#22b8a4] transition disabled:opacity-50"
           >
             {loading ? "Signing in..." : "Sign In"}
           </button>

@@ -24,7 +24,7 @@ export default function CartPage() {
         <div className="flex gap-6 text-sm text-[#6b6b6b]">
           <Link href="/home" className="hover:text-[#E8E8EA] transition">Stores</Link>
           <Link href="/new-drops" className="hover:text-[#E8E8EA] transition">New Drops</Link>
-          <Link href="/cart" className="text-[#2DD4BF]">Cart</Link>
+          <Link href="/cart" className="text-[#7EC8B8]">Cart</Link>
         </div>
       </nav>
 
@@ -37,7 +37,7 @@ export default function CartPage() {
             <p className="text-[#2B2B2E] text-sm mb-8">Add items from your favorite stores to get started</p>
             <Link
               href="/home"
-              className="bg-[#2DD4BF] text-[#0D0D0F] px-8 py-3 rounded-full font-bold hover:bg-[#22b8a4] transition inline-block"
+              className="bg-[#7EC8B8] text-[#0D0D0F] px-8 py-3 rounded-full font-bold hover:bg-[#22b8a4] transition inline-block"
             >
               Browse Stores
             </Link>
@@ -53,7 +53,7 @@ export default function CartPage() {
                   <div>
                     <p className="font-semibold text-[#E8E8EA]">{item.name}</p>
                     <p className="text-[#6b6b6b] text-sm mt-0.5">{item.store} · Qty: {item.qty}</p>
-                    <p className="text-[#2DD4BF] text-sm mt-1 font-medium">{item.price}</p>
+                    <p className="text-[#7EC8B8] text-sm mt-1 font-medium">{item.price}</p>
                   </div>
                   <button
                     onClick={() => removeFromCart(item.id, item.store)}
@@ -78,14 +78,14 @@ export default function CartPage() {
                 </div>
                 <div className="flex justify-between font-bold text-[#E8E8EA] text-base mt-2 border-t border-[#2B2B2E] pt-3">
                   <span>Total</span>
-                  <span className="text-[#2DD4BF]">${orderTotal.toFixed(2)}</span>
+                  <span className="text-[#7EC8B8]">${orderTotal.toFixed(2)}</span>
                 </div>
               </div>
             </div>
 
             <button
               onClick={handleCheckout}
-              className="w-full bg-[#2DD4BF] text-[#0D0D0F] py-4 rounded-full font-bold text-lg hover:bg-[#22b8a4] transition"
+              className="w-full bg-[#7EC8B8] text-[#0D0D0F] py-4 rounded-full font-bold text-lg hover:bg-[#22b8a4] transition"
             >
               Checkout
             </button>

@@ -2,6 +2,7 @@
 import { useRef, useState } from "react"
 import Link from "next/link"
 import { SignOutButton } from "@clerk/nextjs"
+import MegaMenu from "../components/MegaMenu"
 
 const stores = [
   { name: "Zara", slug: "zara", category: "Fashion & Basics", time: "30-45 min", fee: "$2.99", lat: 40.7580, lng: -73.9855 },
@@ -54,7 +55,10 @@ export default function HomePage() {
 
       {/* Nav */}
       <nav className="flex justify-between items-center px-8 py-4 border-b border-[#2B2B2E] sticky top-0 bg-[#0D0D0F] z-10">
-        <h1 className="text-2xl font-bold tracking-widest text-[#E8E8EA]">FIT DROP</h1>
+        <div className="flex items-center gap-3">
+          <MegaMenu />
+          <h1 className="text-2xl font-bold tracking-widest text-[#E8E8EA]">FIT DROP</h1>
+        </div>
         <div className="flex gap-6 text-sm text-[#6b6b6b] items-center">
           <button onClick={scrollToStores} className="hover:text-[#E8E8EA] transition">Stores</button>
           <Link href="/new-drops" className="hover:text-[#E8E8EA] transition">New Drops</Link>
@@ -67,19 +71,19 @@ export default function HomePage() {
 
       {/* Hero */}
       <section className="flex flex-col items-center justify-center h-[80vh] text-center px-4">
-        <p className="text-[#2DD4BF] uppercase tracking-widest text-sm mb-4 font-medium">Fashion. Delivered.</p>
+        <p className="text-[#7EC8B8] uppercase tracking-widest text-sm mb-4 font-medium">Fashion. Delivered.</p>
         <h2 className="text-6xl font-bold mb-6 text-[#E8E8EA] leading-tight">Because Waiting<br />Isn't Fashionable</h2>
         <p className="text-[#6b6b6b] text-lg mb-10 max-w-md">Same-day delivery from your favorite Manhattan stores, straight to your door.</p>
         <div className="flex gap-3">
           <button
             onClick={scrollToStores}
-            className="bg-[#2DD4BF] text-[#0D0D0F] px-8 py-3 rounded-full font-bold hover:bg-[#22b8a4] transition"
+            className="bg-[#7EC8B8] text-[#0D0D0F] px-8 py-3 rounded-full font-bold hover:bg-[#6ab5a5] transition"
           >
             Browse Stores
           </button>
           <button
             onClick={detectLocation}
-            className="border border-[#2B2B2E] text-[#E8E8EA] px-6 py-3 rounded-full font-semibold hover:border-[#2DD4BF] hover:text-[#2DD4BF] transition flex items-center gap-2"
+            className="border border-[#2B2B2E] text-[#E8E8EA] px-6 py-3 rounded-full font-semibold hover:border-[#7EC8B8] hover:text-[#7EC8B8] transition flex items-center gap-2"
           >
             {locationStatus === "loading" ? "Locating..." : locationStatus === "success" ? "📍 Sorted by distance" : "📍 Near Me"}
           </button>
@@ -98,7 +102,7 @@ export default function HomePage() {
           <input
             type="text"
             placeholder="Search stores..."
-            className="bg-[#1C1C1E] border border-[#2B2B2E] rounded-full px-4 py-2 text-sm text-[#E8E8EA] placeholder-[#6b6b6b] focus:outline-none focus:border-[#2DD4BF] w-48 transition"
+            className="bg-[#1C1C1E] border border-[#2B2B2E] rounded-full px-4 py-2 text-sm text-[#E8E8EA] placeholder-[#6b6b6b] focus:outline-none focus:border-[#7EC8B8] w-48 transition"
             onChange={(e) => {
               const val = e.target.value.toLowerCase()
               document.querySelectorAll("[data-store]").forEach((el) => {
@@ -114,19 +118,19 @@ export default function HomePage() {
               key={store.name}
               data-store={store.name.toLowerCase()}
               href={`/stores/${store.slug}`}
-              className="bg-[#1C1C1E] border border-[#2B2B2E] rounded-2xl p-6 hover:border-[#2DD4BF] transition block no-underline relative group"
+              className="bg-[#1C1C1E] border border-[#2B2B2E] rounded-2xl p-6 hover:border-[#7EC8B8] transition block no-underline relative group"
             >
               {locationStatus === "success" && index === 0 && (
-                <span className="absolute top-4 right-4 text-xs bg-[#2DD4BF] text-[#0D0D0F] px-2 py-1 rounded-full font-bold">Closest</span>
+                <span className="absolute top-4 right-4 text-xs bg-[#7EC8B8] text-[#0D0D0F] px-2 py-1 rounded-full font-bold">Closest</span>
               )}
               <div className="w-12 h-12 bg-[#2B2B2E] rounded-full mb-4 flex items-center justify-center">
-                <span className="text-[#2DD4BF] font-bold text-sm">{store.name[0]}</span>
+                <span className="text-[#7EC8B8] font-bold text-sm">{store.name[0]}</span>
               </div>
               <h4 className="text-lg font-semibold mb-1 text-[#E8E8EA]">{store.name}</h4>
               <p className="text-[#6b6b6b] text-sm mb-4">{store.category}</p>
               <div className="flex justify-between text-xs text-[#6b6b6b]">
                 <span>🕐 {store.time}</span>
-                <span className="text-[#2DD4BF]">{store.distance ? `📍 ${store.distance} mi` : `🛵 ${store.fee}`}</span>
+                <span className="text-[#7EC8B8]">{store.distance ? `📍 ${store.distance} mi` : `🛵 ${store.fee}`}</span>
               </div>
             </Link>
           ))}

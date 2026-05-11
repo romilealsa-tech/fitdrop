@@ -118,7 +118,7 @@ export default function AdminDashboard() {
 
   if (loading) return (
     <main className="min-h-screen bg-[#0D0D0F] flex items-center justify-center">
-      <div className="text-[#2DD4BF] text-sm uppercase tracking-widest animate-pulse">Loading inventory...</div>
+      <div className="text-[#7EC8B8] text-sm uppercase tracking-widest animate-pulse">Loading inventory...</div>
     </main>
   )
 
@@ -130,7 +130,7 @@ export default function AdminDashboard() {
 
       {/* Toast */}
       {toast && (
-        <div className="fixed top-6 right-6 bg-[#2DD4BF] text-[#0D0D0F] px-5 py-3 rounded-full text-sm font-bold z-50 shadow-lg">
+        <div className="fixed top-6 right-6 bg-[#7EC8B8] text-[#0D0D0F] px-5 py-3 rounded-full text-sm font-bold z-50 shadow-lg">
           {toast}
         </div>
       )}
@@ -140,7 +140,7 @@ export default function AdminDashboard() {
         <div className="flex items-center gap-3">
           <span className="text-2xl font-bold tracking-widest text-[#E8E8EA]">FIT DROP</span>
           <span className="text-[#2B2B2E]">|</span>
-          <span className="text-sm text-[#2DD4BF] font-medium">{admin?.store} Portal</span>
+          <span className="text-sm text-[#7EC8B8] font-medium">{admin?.store} Portal</span>
         </div>
         <div className="flex items-center gap-4">
           <Link href="/home" className="text-xs text-[#6b6b6b] hover:text-[#E8E8EA] transition">View Store</Link>
@@ -153,20 +153,20 @@ export default function AdminDashboard() {
         {/* Header */}
         <div className="flex justify-between items-start mb-10">
           <div>
-            <p className="text-[#2DD4BF] text-xs uppercase tracking-widest mb-1 font-medium">Inventory Management</p>
+            <p className="text-[#7EC8B8] text-xs uppercase tracking-widest mb-1 font-medium">Inventory Management</p>
             <h2 className="text-3xl font-bold text-[#E8E8EA]">{admin?.store}</h2>
             <p className="text-[#6b6b6b] text-sm mt-1">{admin?.email}</p>
           </div>
           <div className="flex gap-3">
             <button
               onClick={() => { setShowSyncForm(!showSyncForm); setShowAddForm(false) }}
-              className="border border-[#2DD4BF] text-[#2DD4BF] px-6 py-2.5 rounded-full font-bold text-sm hover:bg-[#2DD4BF] hover:text-[#0D0D0F] transition"
+              className="border border-[#7EC8B8] text-[#7EC8B8] px-6 py-2.5 rounded-full font-bold text-sm hover:bg-[#7EC8B8] hover:text-[#0D0D0F] transition"
             >
               ⚡ Sync Shopify
             </button>
             <button
               onClick={() => { setShowAddForm(!showAddForm); setShowSyncForm(false) }}
-              className="bg-[#2DD4BF] text-[#0D0D0F] px-6 py-2.5 rounded-full font-bold text-sm hover:bg-[#22b8a4] transition"
+              className="bg-[#7EC8B8] text-[#0D0D0F] px-6 py-2.5 rounded-full font-bold text-sm hover:bg-[#22b8a4] transition"
             >
               + Add Product
             </button>
@@ -181,7 +181,7 @@ export default function AdminDashboard() {
           </div>
           <div className="bg-[#1C1C1E] border border-[#2B2B2E] rounded-2xl p-5">
             <p className="text-[#6b6b6b] text-xs uppercase tracking-widest mb-1">In Stock</p>
-            <p className="text-3xl font-bold text-[#2DD4BF]">{inStockCount}</p>
+            <p className="text-3xl font-bold text-[#7EC8B8]">{inStockCount}</p>
           </div>
           <div className="bg-[#1C1C1E] border border-[#2B2B2E] rounded-2xl p-5">
             <p className="text-[#6b6b6b] text-xs uppercase tracking-widest mb-1">Out of Stock</p>
@@ -191,12 +191,12 @@ export default function AdminDashboard() {
 
         {/* Shopify Sync Form */}
         {showSyncForm && (
-          <div className="bg-[#1C1C1E] border border-[#2DD4BF] rounded-2xl p-6 mb-8">
+          <div className="bg-[#1C1C1E] border border-[#7EC8B8] rounded-2xl p-6 mb-8">
             <h3 className="font-bold text-[#E8E8EA] mb-1">Sync from Shopify</h3>
             <p className="text-[#6b6b6b] text-sm mb-4">Enter your Shopify access token to sync inventory automatically</p>
             <div className="flex gap-3">
               <input
-                className="flex-1 bg-[#0D0D0F] border border-[#2B2B2E] rounded-xl px-4 py-3 text-[#E8E8EA] text-sm placeholder-[#6b6b6b] focus:outline-none focus:border-[#2DD4BF] transition"
+                className="flex-1 bg-[#0D0D0F] border border-[#2B2B2E] rounded-xl px-4 py-3 text-[#E8E8EA] text-sm placeholder-[#6b6b6b] focus:outline-none focus:border-[#7EC8B8] transition"
                 placeholder="shpat_xxxxxxxxxxxx"
                 value={shopifyToken}
                 onChange={e => setShopifyToken(e.target.value)}
@@ -221,7 +221,7 @@ export default function AdminDashboard() {
                   setShopifyToken("")
                 }}
                 disabled={syncing || !shopifyToken}
-                className="bg-[#2DD4BF] text-[#0D0D0F] px-6 py-3 rounded-full font-bold text-sm hover:bg-[#22b8a4] transition disabled:opacity-50"
+                className="bg-[#7EC8B8] text-[#0D0D0F] px-6 py-3 rounded-full font-bold text-sm hover:bg-[#22b8a4] transition disabled:opacity-50"
               >
                 {syncing ? "Syncing..." : "Sync Now"}
               </button>
@@ -231,29 +231,29 @@ export default function AdminDashboard() {
 
         {/* Add Product Form */}
         {showAddForm && (
-          <div className="bg-[#1C1C1E] border border-[#2DD4BF] rounded-2xl p-6 mb-8">
+          <div className="bg-[#1C1C1E] border border-[#7EC8B8] rounded-2xl p-6 mb-8">
             <h3 className="font-bold text-[#E8E8EA] mb-4">New Product</h3>
             <div className="grid grid-cols-2 gap-4 mb-4">
               <input
-                className="bg-[#0D0D0F] border border-[#2B2B2E] rounded-xl px-4 py-3 text-[#E8E8EA] text-sm placeholder-[#6b6b6b] focus:outline-none focus:border-[#2DD4BF] transition"
+                className="bg-[#0D0D0F] border border-[#2B2B2E] rounded-xl px-4 py-3 text-[#E8E8EA] text-sm placeholder-[#6b6b6b] focus:outline-none focus:border-[#7EC8B8] transition"
                 placeholder="Product name"
                 value={newProduct.name}
                 onChange={e => setNewProduct({ ...newProduct, name: e.target.value })}
               />
               <input
-                className="bg-[#0D0D0F] border border-[#2B2B2E] rounded-xl px-4 py-3 text-[#E8E8EA] text-sm placeholder-[#6b6b6b] focus:outline-none focus:border-[#2DD4BF] transition"
+                className="bg-[#0D0D0F] border border-[#2B2B2E] rounded-xl px-4 py-3 text-[#E8E8EA] text-sm placeholder-[#6b6b6b] focus:outline-none focus:border-[#7EC8B8] transition"
                 placeholder="Price (e.g. $49.99)"
                 value={newProduct.price}
                 onChange={e => setNewProduct({ ...newProduct, price: e.target.value })}
               />
               <input
-                className="bg-[#0D0D0F] border border-[#2B2B2E] rounded-xl px-4 py-3 text-[#E8E8EA] text-sm placeholder-[#6b6b6b] focus:outline-none focus:border-[#2DD4BF] transition"
+                className="bg-[#0D0D0F] border border-[#2B2B2E] rounded-xl px-4 py-3 text-[#E8E8EA] text-sm placeholder-[#6b6b6b] focus:outline-none focus:border-[#7EC8B8] transition"
                 placeholder="Tag (e.g. New, Trending)"
                 value={newProduct.tag}
                 onChange={e => setNewProduct({ ...newProduct, tag: e.target.value })}
               />
               <input
-                className="bg-[#0D0D0F] border border-[#2B2B2E] rounded-xl px-4 py-3 text-[#E8E8EA] text-sm placeholder-[#6b6b6b] focus:outline-none focus:border-[#2DD4BF] transition"
+                className="bg-[#0D0D0F] border border-[#2B2B2E] rounded-xl px-4 py-3 text-[#E8E8EA] text-sm placeholder-[#6b6b6b] focus:outline-none focus:border-[#7EC8B8] transition"
                 placeholder="Category"
                 value={newProduct.category}
                 onChange={e => setNewProduct({ ...newProduct, category: e.target.value })}
@@ -261,7 +261,7 @@ export default function AdminDashboard() {
             </div>
             <div className="flex gap-3">
               <button onClick={addProduct}
-                className="bg-[#2DD4BF] text-[#0D0D0F] px-6 py-2.5 rounded-full font-bold text-sm hover:bg-[#22b8a4] transition">
+                className="bg-[#7EC8B8] text-[#0D0D0F] px-6 py-2.5 rounded-full font-bold text-sm hover:bg-[#22b8a4] transition">
                 Add Product
               </button>
               <button onClick={() => setShowAddForm(false)}
@@ -294,7 +294,7 @@ export default function AdminDashboard() {
                 <input
                   defaultValue={product.price}
                   onBlur={e => { if (e.target.value !== product.price) updatePrice(product, e.target.value) }}
-                  className="bg-transparent border border-transparent hover:border-[#2B2B2E] focus:border-[#2DD4BF] rounded-lg px-2 py-1 text-sm text-[#E8E8EA] focus:outline-none transition w-full"
+                  className="bg-transparent border border-transparent hover:border-[#2B2B2E] focus:border-[#7EC8B8] rounded-lg px-2 py-1 text-sm text-[#E8E8EA] focus:outline-none transition w-full"
                 />
               </div>
 
@@ -302,7 +302,7 @@ export default function AdminDashboard() {
                 <select
                   value={product.tag}
                   onChange={e => updateTag(product, e.target.value)}
-                  className="bg-[#0D0D0F] border border-[#2B2B2E] rounded-lg px-2 py-1 text-xs text-[#E8E8EA] focus:outline-none focus:border-[#2DD4BF] transition w-full"
+                  className="bg-[#0D0D0F] border border-[#2B2B2E] rounded-lg px-2 py-1 text-xs text-[#E8E8EA] focus:outline-none focus:border-[#7EC8B8] transition w-full"
                 >
                   <option value="">None</option>
                   <option value="New">New</option>
@@ -318,7 +318,7 @@ export default function AdminDashboard() {
                   disabled={saving === product._id}
                   className={`px-3 py-1 rounded-full text-xs font-bold transition ${
                     product.inStock
-                      ? "bg-[#2DD4BF]/10 text-[#2DD4BF] hover:bg-[#2DD4BF]/20"
+                      ? "bg-[#7EC8B8]/10 text-[#7EC8B8] hover:bg-[#7EC8B8]/20"
                       : "bg-red-500/10 text-red-400 hover:bg-red-500/20"
                   }`}
                 >

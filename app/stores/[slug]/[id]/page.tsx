@@ -82,7 +82,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
 
   if (loading) return (
     <main className="min-h-screen bg-[#0D0D0F] flex items-center justify-center">
-      <div className="text-[#2DD4BF] text-sm uppercase tracking-widest animate-pulse">Loading...</div>
+      <div className="text-[#7EC8B8] text-sm uppercase tracking-widest animate-pulse">Loading...</div>
     </main>
   )
 
@@ -90,7 +90,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
     <main className="min-h-screen bg-[#0D0D0F] flex items-center justify-center">
       <div className="text-center">
         <p className="text-[#E8E8EA] text-lg mb-4">Product not found</p>
-        <Link href={`/stores/${slug}`} className="text-[#2DD4BF] hover:underline">← Back to store</Link>
+        <Link href={`/stores/${slug}`} className="text-[#7EC8B8] hover:underline">← Back to store</Link>
       </div>
     </main>
   )
@@ -104,9 +104,9 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
         <div className="flex gap-6 text-sm text-[#6b6b6b] items-center">
           <Link href="/home" className="hover:text-[#E8E8EA] transition">Stores</Link>
           <Link href="/new-drops" className="hover:text-[#E8E8EA] transition">New Drops</Link>
-          <Link href="/cart" className="text-[#E8E8EA] flex items-center gap-1 hover:text-[#2DD4BF] transition">
+          <Link href="/cart" className="text-[#E8E8EA] flex items-center gap-1 hover:text-[#7EC8B8] transition">
             Cart {cartCount > 0 && (
-              <span className="bg-[#2DD4BF] text-[#0D0D0F] rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
+              <span className="bg-[#7EC8B8] text-[#0D0D0F] rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
                 {cartCount}
               </span>
             )}
@@ -139,7 +139,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
             {/* Thumbnail row */}
             <div className="grid grid-cols-4 gap-2">
               {[...Array(4)].map((_, i) => (
-                <div key={i} className={`bg-[#1C1C1E] border rounded-xl aspect-square flex items-center justify-center cursor-pointer transition ${i === 0 ? "border-[#2DD4BF]" : "border-[#2B2B2E] hover:border-[#6b6b6b]"}`}>
+                <div key={i} className={`bg-[#1C1C1E] border rounded-xl aspect-square flex items-center justify-center cursor-pointer transition ${i === 0 ? "border-[#7EC8B8]" : "border-[#2B2B2E] hover:border-[#6b6b6b]"}`}>
                   <span className="text-[#2B2B2E] text-lg">📦</span>
                 </div>
               ))}
@@ -150,11 +150,11 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
           <div>
             {/* Store + tag */}
             <div className="flex items-center justify-between mb-3">
-              <Link href={`/stores/${slug}`} className="text-[#2DD4BF] text-sm font-medium hover:underline">
+              <Link href={`/stores/${slug}`} className="text-[#7EC8B8] text-sm font-medium hover:underline">
                 {product.store}
               </Link>
               {product.tag && (
-                <span className="text-xs bg-[#2DD4BF] text-[#0D0D0F] px-3 py-1 rounded-full font-bold">
+                <span className="text-xs bg-[#7EC8B8] text-[#0D0D0F] px-3 py-1 rounded-full font-bold">
                   {product.tag}
                 </span>
               )}
@@ -164,7 +164,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
             <h1 className="text-3xl font-bold text-[#E8E8EA] mb-2">{product.name}</h1>
 
             {/* Price */}
-            <p className="text-2xl text-[#2DD4BF] font-bold mb-4">{product.price}</p>
+            <p className="text-2xl text-[#7EC8B8] font-bold mb-4">{product.price}</p>
 
             {/* Description */}
             <p className="text-[#6b6b6b] text-sm leading-relaxed mb-6">{product.description}</p>
@@ -193,7 +193,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                       title={color}
                       className={`w-8 h-8 rounded-full border-2 transition ${
                         selectedColor === color
-                          ? "border-[#2DD4BF] scale-110"
+                          ? "border-[#7EC8B8] scale-110"
                           : "border-[#2B2B2E] hover:border-[#6b6b6b]"
                       }`}
                       style={{ backgroundColor: getColor(color) }}
@@ -208,7 +208,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
               <div className="mb-8">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-sm font-semibold text-[#E8E8EA]">Size</p>
-                  <button className="text-xs text-[#2DD4BF] hover:underline">Size guide</button>
+                  <button className="text-xs text-[#7EC8B8] hover:underline">Size guide</button>
                 </div>
                 <div className="flex gap-2 flex-wrap">
                   {product.sizes.map((size: string) => (
@@ -217,7 +217,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                       onClick={() => setSelectedSize(size)}
                       className={`px-4 py-2 rounded-xl text-sm font-medium border transition ${
                         selectedSize === size
-                          ? "bg-[#2DD4BF] text-[#0D0D0F] border-[#2DD4BF] font-bold"
+                          ? "bg-[#7EC8B8] text-[#0D0D0F] border-[#7EC8B8] font-bold"
                           : "bg-transparent text-[#E8E8EA] border-[#2B2B2E] hover:border-[#6b6b6b]"
                       }`}
                     >
@@ -234,8 +234,8 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
               disabled={!selectedSize && product.sizes?.length > 0}
               className={`w-full py-4 rounded-full font-bold text-lg transition ${
                 added
-                  ? "bg-[#1C1C1E] text-[#2DD4BF] border border-[#2DD4BF]"
-                  : "bg-[#2DD4BF] text-[#0D0D0F] hover:bg-[#22b8a4]"
+                  ? "bg-[#1C1C1E] text-[#7EC8B8] border border-[#7EC8B8]"
+                  : "bg-[#7EC8B8] text-[#0D0D0F] hover:bg-[#22b8a4]"
               } disabled:opacity-40`}
             >
               {added ? "✓ Added to Cart" : "Add to Cart"}

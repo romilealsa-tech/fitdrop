@@ -92,7 +92,7 @@ export default function CheckoutPage() {
   const orderTotal = total + delivery + tax
 
   const inputClass = (field: string) =>
-    `w-full bg-[#1C1C1E] border ${errors[field] ? "border-red-500" : "border-[#2B2B2E]"} rounded-xl px-4 py-3 text-[#E8E8EA] text-sm placeholder-[#6b6b6b] focus:outline-none focus:border-[#2DD4BF] transition`
+    `w-full bg-[#1C1C1E] border ${errors[field] ? "border-red-500" : "border-[#2B2B2E]"} rounded-xl px-4 py-3 text-[#E8E8EA] text-sm placeholder-[#6b6b6b] focus:outline-none focus:border-[#7EC8B8] transition`
 
   return (
     <main className="min-h-screen bg-[#0D0D0F] text-[#E8E8EA]">
@@ -118,7 +118,7 @@ export default function CheckoutPage() {
                   "text-[#2B2B2E]"
                 }`}>
                   <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
-                    step === s ? "bg-[#2DD4BF] text-[#0D0D0F]" :
+                    step === s ? "bg-[#7EC8B8] text-[#0D0D0F]" :
                     (s === "payment" && step === "review") ? "bg-[#2B2B2E] text-[#6b6b6b]" :
                     "bg-[#1C1C1E] text-[#6b6b6b]"
                   }`}>{i + 1}</div>
@@ -182,7 +182,7 @@ export default function CheckoutPage() {
                     onClick={() => { setBillingSameAsDelivery(!billingSameAsDelivery); setErrors({}) }}
                     className={`w-5 h-5 rounded border-2 flex items-center justify-center transition ${
                       billingSameAsDelivery
-                        ? "bg-[#2DD4BF] border-[#2DD4BF]"
+                        ? "bg-[#7EC8B8] border-[#7EC8B8]"
                         : "bg-transparent border-[#2B2B2E] group-hover:border-[#6b6b6b]"
                     }`}
                   >
@@ -236,7 +236,7 @@ export default function CheckoutPage() {
 
               <button
                 onClick={() => { if (validateAddress()) setStep("payment") }}
-                className="w-full bg-[#2DD4BF] text-[#0D0D0F] py-4 rounded-full font-bold text-lg hover:bg-[#22b8a4] transition"
+                className="w-full bg-[#7EC8B8] text-[#0D0D0F] py-4 rounded-full font-bold text-lg hover:bg-[#22b8a4] transition"
               >
                 Continue to Payment
               </button>
@@ -251,7 +251,7 @@ export default function CheckoutPage() {
               {/* Live card preview */}
               <div className="bg-gradient-to-br from-[#1C1C1E] to-[#0D0D0F] border border-[#2B2B2E] rounded-2xl p-6 mb-8 h-44 flex flex-col justify-between">
                 <div className="flex justify-between items-start">
-                  <p className="text-xs text-[#2DD4BF] uppercase tracking-widest font-bold">FIT DROP</p>
+                  <p className="text-xs text-[#7EC8B8] uppercase tracking-widest font-bold">FIT DROP</p>
                   <div className="flex">
                     <div className="w-8 h-8 rounded-full bg-red-500 opacity-80" />
                     <div className="w-8 h-8 rounded-full bg-yellow-500 opacity-80 -ml-4" />
@@ -292,11 +292,11 @@ export default function CheckoutPage() {
               </div>
               <div className="flex gap-4">
                 <button onClick={() => setStep("address")}
-                  className="w-full border border-[#2B2B2E] text-[#E8E8EA] py-4 rounded-full font-bold text-lg hover:border-[#2DD4BF] hover:text-[#2DD4BF] transition">
+                  className="w-full border border-[#2B2B2E] text-[#E8E8EA] py-4 rounded-full font-bold text-lg hover:border-[#7EC8B8] hover:text-[#7EC8B8] transition">
                   Back
                 </button>
                 <button onClick={() => { if (validatePayment()) setStep("review") }}
-                  className="w-full bg-[#2DD4BF] text-[#0D0D0F] py-4 rounded-full font-bold text-lg hover:bg-[#22b8a4] transition">
+                  className="w-full bg-[#7EC8B8] text-[#0D0D0F] py-4 rounded-full font-bold text-lg hover:bg-[#22b8a4] transition">
                   Review Order
                 </button>
               </div>
@@ -311,7 +311,7 @@ export default function CheckoutPage() {
               <div className="bg-[#1C1C1E] border border-[#2B2B2E] rounded-2xl p-6 mb-4">
                 <div className="flex justify-between items-center mb-3">
                   <p className="text-sm font-semibold text-[#E8E8EA]">Delivery Address</p>
-                  <button onClick={() => setStep("address")} className="text-xs text-[#2DD4BF] hover:text-[#22b8a4] transition">Edit</button>
+                  <button onClick={() => setStep("address")} className="text-xs text-[#7EC8B8] hover:text-[#22b8a4] transition">Edit</button>
                 </div>
                 <p className="text-sm text-[#6b6b6b]">{address.firstName} {address.lastName}</p>
                 <p className="text-sm text-[#6b6b6b]">{address.street}{address.apt ? `, ${address.apt}` : ""}</p>
@@ -322,7 +322,7 @@ export default function CheckoutPage() {
               <div className="bg-[#1C1C1E] border border-[#2B2B2E] rounded-2xl p-6 mb-4">
                 <div className="flex justify-between items-center mb-3">
                   <p className="text-sm font-semibold text-[#E8E8EA]">Billing Address</p>
-                  <button onClick={() => setStep("address")} className="text-xs text-[#2DD4BF] hover:text-[#22b8a4] transition">Edit</button>
+                  <button onClick={() => setStep("address")} className="text-xs text-[#7EC8B8] hover:text-[#22b8a4] transition">Edit</button>
                 </div>
                 {billingSameAsDelivery ? (
                   <p className="text-sm text-[#6b6b6b]">Same as delivery address</p>
@@ -338,7 +338,7 @@ export default function CheckoutPage() {
               <div className="bg-[#1C1C1E] border border-[#2B2B2E] rounded-2xl p-6 mb-8">
                 <div className="flex justify-between items-center mb-3">
                   <p className="text-sm font-semibold text-[#E8E8EA]">Payment</p>
-                  <button onClick={() => setStep("payment")} className="text-xs text-[#2DD4BF] hover:text-[#22b8a4] transition">Edit</button>
+                  <button onClick={() => setStep("payment")} className="text-xs text-[#7EC8B8] hover:text-[#22b8a4] transition">Edit</button>
                 </div>
                 <p className="text-sm text-[#6b6b6b]">•••• •••• •••• {payment.cardNumber.slice(-4)}</p>
                 <p className="text-sm text-[#6b6b6b]">{payment.cardName}</p>
@@ -346,11 +346,11 @@ export default function CheckoutPage() {
 
               <div className="flex gap-4">
                 <button onClick={() => setStep("payment")}
-                  className="w-full border border-[#2B2B2E] text-[#E8E8EA] py-4 rounded-full font-bold text-lg hover:border-[#2DD4BF] hover:text-[#2DD4BF] transition">
+                  className="w-full border border-[#2B2B2E] text-[#E8E8EA] py-4 rounded-full font-bold text-lg hover:border-[#7EC8B8] hover:text-[#7EC8B8] transition">
                   Back
                 </button>
                 <button onClick={handlePlaceOrder}
-                  className="w-full bg-[#2DD4BF] text-[#0D0D0F] py-4 rounded-full font-bold text-lg hover:bg-[#22b8a4] transition">
+                  className="w-full bg-[#7EC8B8] text-[#0D0D0F] py-4 rounded-full font-bold text-lg hover:bg-[#22b8a4] transition">
                   Place Order
                 </button>
               </div>
@@ -382,7 +382,7 @@ export default function CheckoutPage() {
               </div>
               <div className="flex justify-between font-bold text-[#E8E8EA] text-base mt-2 border-t border-[#2B2B2E] pt-3">
                 <span>Total</span>
-                <span className="text-[#2DD4BF]">${orderTotal.toFixed(2)}</span>
+                <span className="text-[#7EC8B8]">${orderTotal.toFixed(2)}</span>
               </div>
             </div>
             <div className="mt-5 flex items-center gap-2 text-xs text-[#2B2B2E]">
