@@ -1,15 +1,83 @@
 "use client"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCart } from "../CartContext"
+import { loadStripe } from "@stripe/stripe-js"
+import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js"
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
 type Step = "address" | "payment" | "review"
+
+function CheckoutForm({ clientSecret, onSuccess }: { clientSecret: string; onSuccess: () => void }) {
+  const stripe = useStripe()
+  const elements = useElements()
+  const [processing, setProcessing] = useState(false)
+  const [error, setError] = useState("")
+
+  const handleSubmit = async () => {
+    if (!stripe || !elements) return
+    setProcessing(true)
+    setError("")
+
+    const { error } = await stripe.confirmPayment({
+      elements,
+      confirmParams: { return_url: window.location.origin + "/order" },
+      redirect: "if_required",
+    })
+
+    if (error) {
+      setError(error.message || "Payment failed")
+      setProcessing(false)
+    } else {
+      onSuccess()
+    }
+  }
+
+  return (
+    <div>
+      <PaymentElement className="mb-6" options={{
+        style: {
+          base: {
+            color: "#E8E8EA",
+            backgroundColor: "#1C1C1E",
+            fontFamily: "inherit",
+            fontSize: "14px",
+          }
+        }
+      }} />
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 mb-4">
+          <p className="text-red-400 text-sm">{error}</p>
+        </div>
+      )}
+      <div className="flex gap-4 mt-6">
+        <button
+          type="button"
+          onClick={() => window.history.back()}
+          className="w-full border border-[#2B2B2E] text-[#E8E8EA] py-4 rounded-full font-bold text-lg hover:border-[#7EC8B8] hover:text-[#7EC8B8] transition"
+        >
+          Back
+        </button>
+        <button
+          onClick={handleSubmit}
+          disabled={processing || !stripe}
+          className="w-full bg-[#7EC8B8] text-[#0D0D0F] py-4 rounded-full font-bold text-lg hover:bg-[#6ab5a5] transition disabled:opacity-50"
+        >
+          {processing ? "Processing..." : "Pay Now"}
+        </button>
+      </div>
+    </div>
+  )
+}
 
 export default function CheckoutPage() {
   const { cart, total } = useCart()
   const router = useRouter()
   const [step, setStep] = useState<Step>("address")
+  const [clientSecret, setClientSecret] = useState("")
+  const [loadingPayment, setLoadingPayment] = useState(false)
 
   const [address, setAddress] = useState({
     firstName: "", lastName: "", email: "", phone: "",
@@ -17,17 +85,16 @@ export default function CheckoutPage() {
   })
 
   const [billingSameAsDelivery, setBillingSameAsDelivery] = useState(true)
-
   const [billing, setBilling] = useState({
     firstName: "", lastName: "",
     street: "", apt: "", city: "New York", state: "NY", zip: "",
   })
 
-  const [payment, setPayment] = useState({
-    cardNumber: "", cardName: "", expiry: "", cvv: "",
-  })
-
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const delivery = 3.99
+  const tax = total * 0.08875
+  const orderTotal = total + delivery + tax
 
   const validateAddress = () => {
     const e: Record<string, string> = {}
@@ -47,49 +114,39 @@ export default function CheckoutPage() {
     return Object.keys(e).length === 0
   }
 
-  const validatePayment = () => {
-    const e: Record<string, string> = {}
-    if (!payment.cardName) e.cardName = "Required"
-    if (!payment.cardNumber || payment.cardNumber.replace(/\s/g, "").length < 16) e.cardNumber = "Valid card number required"
-    if (!payment.expiry || !payment.expiry.includes("/")) e.expiry = "Format: MM/YY"
-    if (!payment.cvv || payment.cvv.length < 3) e.cvv = "Valid CVV required"
-    setErrors(e)
-    return Object.keys(e).length === 0
+  const handleContinueToPayment = async () => {
+    if (!validateAddress()) return
+    setLoadingPayment(true)
+    try {
+      const res = await fetch("/api/stripe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: orderTotal }),
+      })
+      const data = await res.json()
+      setClientSecret(data.clientSecret)
+      setStep("payment")
+    } catch (err) {
+      console.error(err)
+    }
+    setLoadingPayment(false)
   }
 
-  const formatCard = (val: string) => {
-    return val.replace(/\D/g, "").slice(0, 16).replace(/(.{4})/g, "$1 ").trim()
-  }
+  const handlePaymentSuccess = () => {
+    const effectiveBilling = billingSameAsDelivery ? {
+      firstName: address.firstName, lastName: address.lastName,
+      street: address.street, apt: address.apt,
+      city: address.city, state: address.state, zip: address.zip,
+    } : billing
 
-  const formatExpiry = (val: string) => {
-    const clean = val.replace(/\D/g, "").slice(0, 4)
-    if (clean.length >= 3) return clean.slice(0, 2) + "/" + clean.slice(2)
-    return clean
-  }
-
-  const effectiveBilling = billingSameAsDelivery ? {
-    firstName: address.firstName,
-    lastName: address.lastName,
-    street: address.street,
-    apt: address.apt,
-    city: address.city,
-    state: address.state,
-    zip: address.zip,
-  } : billing
-
-  const handlePlaceOrder = () => {
     localStorage.setItem("fitdrop_order", JSON.stringify({
       items: cart,
-      total: total.toFixed(2),
+      total: orderTotal.toFixed(2),
       address,
       billing: effectiveBilling,
     }))
     router.push("/order")
   }
-
-  const delivery = 3.99
-  const tax = total * 0.08875
-  const orderTotal = total + delivery + tax
 
   const inputClass = (field: string) =>
     `w-full bg-[#1C1C1E] border ${errors[field] ? "border-red-500" : "border-[#2B2B2E]"} rounded-xl px-4 py-3 text-[#E8E8EA] text-sm placeholder-[#6b6b6b] focus:outline-none focus:border-[#7EC8B8] transition`
@@ -105,7 +162,7 @@ export default function CheckoutPage() {
 
       <div className="max-w-5xl mx-auto px-8 py-10 grid grid-cols-1 lg:grid-cols-3 gap-10">
 
-        {/* Left: Steps */}
+        {/* Left */}
         <div className="lg:col-span-2">
 
           {/* Step indicators */}
@@ -174,16 +231,14 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
-              {/* Billing Address */}
+              {/* Billing */}
               <div className="border-t border-[#2B2B2E] pt-8 mb-6">
                 <h2 className="text-2xl font-bold mb-4 text-[#E8E8EA]">Billing Address</h2>
                 <label className="flex items-center gap-3 cursor-pointer mb-6 group">
                   <div
                     onClick={() => { setBillingSameAsDelivery(!billingSameAsDelivery); setErrors({}) }}
                     className={`w-5 h-5 rounded border-2 flex items-center justify-center transition ${
-                      billingSameAsDelivery
-                        ? "bg-[#7EC8B8] border-[#7EC8B8]"
-                        : "bg-transparent border-[#2B2B2E] group-hover:border-[#6b6b6b]"
+                      billingSameAsDelivery ? "bg-[#7EC8B8] border-[#7EC8B8]" : "bg-transparent border-[#2B2B2E] group-hover:border-[#6b6b6b]"
                     }`}
                   >
                     {billingSameAsDelivery && (
@@ -192,12 +247,8 @@ export default function CheckoutPage() {
                       </svg>
                     )}
                   </div>
-                  <span
-                    onClick={() => { setBillingSameAsDelivery(!billingSameAsDelivery); setErrors({}) }}
-                    className="text-sm text-[#6b6b6b]"
-                  >
-                    Same as delivery address
-                  </span>
+                  <span onClick={() => { setBillingSameAsDelivery(!billingSameAsDelivery); setErrors({}) }}
+                    className="text-sm text-[#6b6b6b]">Same as delivery address</span>
                 </label>
 
                 {!billingSameAsDelivery && (
@@ -235,127 +286,47 @@ export default function CheckoutPage() {
               </div>
 
               <button
-                onClick={() => { if (validateAddress()) setStep("payment") }}
-                className="w-full bg-[#7EC8B8] text-[#0D0D0F] py-4 rounded-full font-bold text-lg hover:bg-[#22b8a4] transition"
+                onClick={handleContinueToPayment}
+                disabled={loadingPayment}
+                className="w-full bg-[#7EC8B8] text-[#0D0D0F] py-4 rounded-full font-bold text-lg hover:bg-[#6ab5a5] transition disabled:opacity-50"
               >
-                Continue to Payment
+                {loadingPayment ? "Loading payment..." : "Continue to Payment"}
               </button>
             </div>
           )}
 
           {/* PAYMENT STEP */}
-          {step === "payment" && (
+          {step === "payment" && clientSecret && (
             <div>
               <h2 className="text-2xl font-bold mb-6 text-[#E8E8EA]">Payment</h2>
-
-              {/* Live card preview */}
-              <div className="bg-gradient-to-br from-[#1C1C1E] to-[#0D0D0F] border border-[#2B2B2E] rounded-2xl p-6 mb-8 h-44 flex flex-col justify-between">
-                <div className="flex justify-between items-start">
-                  <p className="text-xs text-[#7EC8B8] uppercase tracking-widest font-bold">FIT DROP</p>
-                  <div className="flex">
-                    <div className="w-8 h-8 rounded-full bg-red-500 opacity-80" />
-                    <div className="w-8 h-8 rounded-full bg-yellow-500 opacity-80 -ml-4" />
-                  </div>
-                </div>
-                <div>
-                  <p className="text-lg font-mono tracking-widest mb-2 text-[#E8E8EA]">
-                    {payment.cardNumber || "•••• •••• •••• ••••"}
-                  </p>
-                  <div className="flex justify-between text-xs text-[#6b6b6b]">
-                    <span>{payment.cardName || "FULL NAME"}</span>
-                    <span>{payment.expiry || "MM/YY"}</span>
-                  </div>
-                </div>
+              <div className="bg-[#1C1C1E] border border-[#2B2B2E] rounded-2xl p-6 mb-2">
+                <p className="text-xs text-[#6b6b6b] uppercase tracking-widest mb-4">Test card number</p>
+                <p className="text-[#E8E8EA] font-mono text-sm">4242 4242 4242 4242 · Any future date · Any CVV</p>
               </div>
-
-              <div className="mb-4">
-                <input className={inputClass("cardName")} placeholder="Name on card" value={payment.cardName}
-                  onChange={e => setPayment({ ...payment, cardName: e.target.value.toUpperCase() })} />
-                {errors.cardName && <p className="text-red-400 text-xs mt-1">{errors.cardName}</p>}
-              </div>
-              <div className="mb-4">
-                <input className={inputClass("cardNumber")} placeholder="Card number" value={payment.cardNumber}
-                  onChange={e => setPayment({ ...payment, cardNumber: formatCard(e.target.value) })} />
-                {errors.cardNumber && <p className="text-red-400 text-xs mt-1">{errors.cardNumber}</p>}
-              </div>
-              <div className="grid grid-cols-2 gap-4 mb-8">
-                <div>
-                  <input className={inputClass("expiry")} placeholder="MM/YY" value={payment.expiry}
-                    onChange={e => setPayment({ ...payment, expiry: formatExpiry(e.target.value) })} />
-                  {errors.expiry && <p className="text-red-400 text-xs mt-1">{errors.expiry}</p>}
-                </div>
-                <div>
-                  <input className={inputClass("cvv")} placeholder="CVV" maxLength={4} value={payment.cvv}
-                    onChange={e => setPayment({ ...payment, cvv: e.target.value.replace(/\D/g, "").slice(0, 4) })} />
-                  {errors.cvv && <p className="text-red-400 text-xs mt-1">{errors.cvv}</p>}
-                </div>
-              </div>
-              <div className="flex gap-4">
-                <button onClick={() => setStep("address")}
-                  className="w-full border border-[#2B2B2E] text-[#E8E8EA] py-4 rounded-full font-bold text-lg hover:border-[#7EC8B8] hover:text-[#7EC8B8] transition">
-                  Back
-                </button>
-                <button onClick={() => { if (validatePayment()) setStep("review") }}
-                  className="w-full bg-[#7EC8B8] text-[#0D0D0F] py-4 rounded-full font-bold text-lg hover:bg-[#22b8a4] transition">
-                  Review Order
-                </button>
+              <div className="bg-[#1C1C1E] border border-[#2B2B2E] rounded-2xl p-6">
+                <Elements
+                  stripe={stripePromise}
+                  options={{
+                    clientSecret,
+                    appearance: {
+                      theme: "night",
+                      variables: {
+                        colorPrimary: "#7EC8B8",
+                        colorBackground: "#1C1C1E",
+                        colorText: "#E8E8EA",
+                        colorDanger: "#ef4444",
+                        borderRadius: "12px",
+                        fontFamily: "inherit",
+                      }
+                    }
+                  }}
+                >
+                  <CheckoutForm clientSecret={clientSecret} onSuccess={handlePaymentSuccess} />
+                </Elements>
               </div>
             </div>
           )}
 
-          {/* REVIEW STEP */}
-          {step === "review" && (
-            <div>
-              <h2 className="text-2xl font-bold mb-6 text-[#E8E8EA]">Review Order</h2>
-
-              <div className="bg-[#1C1C1E] border border-[#2B2B2E] rounded-2xl p-6 mb-4">
-                <div className="flex justify-between items-center mb-3">
-                  <p className="text-sm font-semibold text-[#E8E8EA]">Delivery Address</p>
-                  <button onClick={() => setStep("address")} className="text-xs text-[#7EC8B8] hover:text-[#22b8a4] transition">Edit</button>
-                </div>
-                <p className="text-sm text-[#6b6b6b]">{address.firstName} {address.lastName}</p>
-                <p className="text-sm text-[#6b6b6b]">{address.street}{address.apt ? `, ${address.apt}` : ""}</p>
-                <p className="text-sm text-[#6b6b6b]">{address.city}, {address.state} {address.zip}</p>
-                <p className="text-sm text-[#6b6b6b] mt-1">{address.phone}</p>
-              </div>
-
-              <div className="bg-[#1C1C1E] border border-[#2B2B2E] rounded-2xl p-6 mb-4">
-                <div className="flex justify-between items-center mb-3">
-                  <p className="text-sm font-semibold text-[#E8E8EA]">Billing Address</p>
-                  <button onClick={() => setStep("address")} className="text-xs text-[#7EC8B8] hover:text-[#22b8a4] transition">Edit</button>
-                </div>
-                {billingSameAsDelivery ? (
-                  <p className="text-sm text-[#6b6b6b]">Same as delivery address</p>
-                ) : (
-                  <>
-                    <p className="text-sm text-[#6b6b6b]">{billing.firstName} {billing.lastName}</p>
-                    <p className="text-sm text-[#6b6b6b]">{billing.street}{billing.apt ? `, ${billing.apt}` : ""}</p>
-                    <p className="text-sm text-[#6b6b6b]">{billing.city}, {billing.state} {billing.zip}</p>
-                  </>
-                )}
-              </div>
-
-              <div className="bg-[#1C1C1E] border border-[#2B2B2E] rounded-2xl p-6 mb-8">
-                <div className="flex justify-between items-center mb-3">
-                  <p className="text-sm font-semibold text-[#E8E8EA]">Payment</p>
-                  <button onClick={() => setStep("payment")} className="text-xs text-[#7EC8B8] hover:text-[#22b8a4] transition">Edit</button>
-                </div>
-                <p className="text-sm text-[#6b6b6b]">•••• •••• •••• {payment.cardNumber.slice(-4)}</p>
-                <p className="text-sm text-[#6b6b6b]">{payment.cardName}</p>
-              </div>
-
-              <div className="flex gap-4">
-                <button onClick={() => setStep("payment")}
-                  className="w-full border border-[#2B2B2E] text-[#E8E8EA] py-4 rounded-full font-bold text-lg hover:border-[#7EC8B8] hover:text-[#7EC8B8] transition">
-                  Back
-                </button>
-                <button onClick={handlePlaceOrder}
-                  className="w-full bg-[#7EC8B8] text-[#0D0D0F] py-4 rounded-full font-bold text-lg hover:bg-[#22b8a4] transition">
-                  Place Order
-                </button>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Right: Order Summary */}
@@ -387,7 +358,7 @@ export default function CheckoutPage() {
             </div>
             <div className="mt-5 flex items-center gap-2 text-xs text-[#2B2B2E]">
               <span>🔒</span>
-              <span>Payments are secured and encrypted</span>
+              <span>Payments secured by Stripe</span>
             </div>
           </div>
         </div>
