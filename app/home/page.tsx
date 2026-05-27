@@ -3,6 +3,8 @@ import { useRef, useState } from "react"
 import Link from "next/link"
 import { SignOutButton } from "@clerk/nextjs"
 import MegaMenu from "../components/MegaMenu"
+import SearchBar from "../components/SearchBar"
+import { useWishlist } from "../WishlistContext"
 
 const stores = [
   { name: "Zara", slug: "zara", category: "Fashion & Basics", time: "30-45 min", fee: "$2.99", lat: 40.7580, lng: -73.9855 },
@@ -28,6 +30,7 @@ export default function HomePage() {
   const scrollToStores = () => storesRef.current?.scrollIntoView({ behavior: "smooth" })
   const [sortedStores, setSortedStores] = useState(stores)
   const [locationStatus, setLocationStatus] = useState<"idle" | "loading" | "success" | "error">("idle")
+  const { wishlist, setOpen } = useWishlist()
 
   const detectLocation = () => {
     setLocationStatus("loading")
@@ -60,9 +63,22 @@ export default function HomePage() {
           <h1 className="text-2xl font-bold tracking-widest text-[#E8E8EA]">FIT DROP</h1>
         </div>
         <div className="flex gap-6 text-sm text-[#6b6b6b] items-center">
+          <SearchBar />
           <button onClick={scrollToStores} className="hover:text-[#E8E8EA] transition">Stores</button>
           <Link href="/new-drops" className="hover:text-[#E8E8EA] transition">New Drops</Link>
+          <button
+            onClick={() => setOpen(true)}
+            className="relative hover:text-[#E8E8EA] transition flex items-center gap-1"
+          >
+            ♡
+            {wishlist.length > 0 && (
+              <span className="bg-red-400 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs font-bold">
+                {wishlist.length}
+              </span>
+            )}
+          </button>
           <Link href="/cart" className="hover:text-[#E8E8EA] transition">Cart</Link>
+          <Link href="/orders" className="hover:text-[#E8E8EA] transition">Orders</Link>
           <SignOutButton>
             <button className="text-[#6b6b6b] hover:text-[#E8E8EA] transition">Sign Out</button>
           </SignOutButton>

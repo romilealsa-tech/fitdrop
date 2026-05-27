@@ -2,10 +2,12 @@
 import React, { useEffect, useState } from "react"
 import Link from "next/link"
 import { useCart } from "../../../CartContext"
+import { useWishlist } from "../../../WishlistContext"
 
 export default function ProductPage({ params }: { params: Promise<{ slug: string; id: string }> }) {
   const { slug, id } = React.use(params)
   const { addToCart, cart } = useCart()
+  const { addToWishlist, removeFromWishlist, isWishlisted, setOpen } = useWishlist()
   const [product, setProduct] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [selectedSize, setSelectedSize] = useState("")
@@ -13,6 +15,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
   const [added, setAdded] = useState(false)
 
   const cartCount = cart.reduce((sum: number, i: any) => sum + i.qty, 0)
+  const wishlisted = product ? isWishlisted(product._id) : false
 
   useEffect(() => {
     fetch(`/api/products?slug=${slug}`)
@@ -39,6 +42,15 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
     })
     setAdded(true)
     setTimeout(() => setAdded(false), 2000)
+  }
+
+  const handleWishlist = () => {
+    if (wishlisted) {
+      removeFromWishlist(product._id)
+    } else {
+      addToWishlist({ ...product, slug })
+      setOpen(true)
+    }
   }
 
   const colorMap: Record<string, string> = {
@@ -104,6 +116,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
         <div className="flex gap-6 text-sm text-[#6b6b6b] items-center">
           <Link href="/home" className="hover:text-[#E8E8EA] transition">Stores</Link>
           <Link href="/new-drops" className="hover:text-[#E8E8EA] transition">New Drops</Link>
+          <button onClick={() => setOpen(true)} className="hover:text-[#E8E8EA] transition">Wishlist</button>
           <Link href="/cart" className="text-[#E8E8EA] flex items-center gap-1 hover:text-[#7EC8B8] transition">
             Cart {cartCount > 0 && (
               <span className="bg-[#7EC8B8] text-[#0D0D0F] rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
@@ -136,7 +149,6 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                 <p className="text-[#2B2B2E] text-xs mt-1">Coming with brand sync</p>
               </div>
             </div>
-            {/* Thumbnail row */}
             <div className="grid grid-cols-4 gap-2">
               {[...Array(4)].map((_, i) => (
                 <div key={i} className={`bg-[#1C1C1E] border rounded-xl aspect-square flex items-center justify-center cursor-pointer transition ${i === 0 ? "border-[#7EC8B8]" : "border-[#2B2B2E] hover:border-[#6b6b6b]"}`}>
@@ -153,11 +165,24 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
               <Link href={`/stores/${slug}`} className="text-[#7EC8B8] text-sm font-medium hover:underline">
                 {product.store}
               </Link>
-              {product.tag && (
-                <span className="text-xs bg-[#7EC8B8] text-[#0D0D0F] px-3 py-1 rounded-full font-bold">
-                  {product.tag}
-                </span>
-              )}
+              <div className="flex items-center gap-2">
+                {product.tag && (
+                  <span className="text-xs bg-[#7EC8B8] text-[#0D0D0F] px-3 py-1 rounded-full font-bold">
+                    {product.tag}
+                  </span>
+                )}
+                {/* Heart / Wishlist button */}
+                <button
+                  onClick={handleWishlist}
+                  className={`w-9 h-9 rounded-full border flex items-center justify-center transition ${
+                    wishlisted
+                      ? "border-red-400 bg-red-400/10 text-red-400"
+                      : "border-[#2B2B2E] text-[#6b6b6b] hover:border-red-400 hover:text-red-400"
+                  }`}
+                >
+                  {wishlisted ? "♥" : "♡"}
+                </button>
+              </div>
             </div>
 
             {/* Name */}
@@ -228,23 +253,34 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
               </div>
             )}
 
-            {/* Add to cart */}
-            <button
-              onClick={handleAddToCart}
-              disabled={!selectedSize && product.sizes?.length > 0}
-              className={`w-full py-4 rounded-full font-bold text-lg transition ${
-                added
-                  ? "bg-[#1C1C1E] text-[#7EC8B8] border border-[#7EC8B8]"
-                  : "bg-[#7EC8B8] text-[#0D0D0F] hover:bg-[#22b8a4]"
-              } disabled:opacity-40`}
-            >
-              {added ? "✓ Added to Cart" : "Add to Cart"}
-            </button>
+            {/* Add to cart + Wishlist */}
+            <div className="flex gap-3">
+              <button
+                onClick={handleAddToCart}
+                disabled={!selectedSize && product.sizes?.length > 0}
+                className={`flex-1 py-4 rounded-full font-bold text-lg transition ${
+                  added
+                    ? "bg-[#1C1C1E] text-[#7EC8B8] border border-[#7EC8B8]"
+                    : "bg-[#7EC8B8] text-[#0D0D0F] hover:bg-[#22b8a4]"
+                } disabled:opacity-40`}
+              >
+                {added ? "✓ Added to Cart" : "Add to Cart"}
+              </button>
+              <button
+                onClick={handleWishlist}
+                className={`w-14 rounded-full border flex items-center justify-center text-xl transition ${
+                  wishlisted
+                    ? "border-red-400 bg-red-400/10 text-red-400"
+                    : "border-[#2B2B2E] text-[#6b6b6b] hover:border-red-400 hover:text-red-400"
+                }`}
+              >
+                {wishlisted ? "♥" : "♡"}
+              </button>
+            </div>
 
             {!selectedSize && product.sizes?.length > 0 && (
               <p className="text-red-400 text-xs mt-2 text-center">Please select a size</p>
             )}
-
           </div>
         </div>
       </div>

@@ -8,18 +8,12 @@ export default function OrdersPage() {
   const { setOpen, wishlist } = useWishlist()
 
   useEffect(() => {
-    // Load current order
     const current = localStorage.getItem("fitdrop_order")
     if (current) {
       const parsed = JSON.parse(current)
-      // Add timestamp if not present
       if (!parsed.date) parsed.date = new Date().toISOString()
-      
-      // Get existing orders
       const existing = localStorage.getItem("fitdrop_orders")
       const allOrders = existing ? JSON.parse(existing) : []
-      
-      // Add current order if not already saved
       const alreadySaved = allOrders.find((o: any) => o.total === parsed.total && o.date === parsed.date)
       if (!alreadySaved) {
         allOrders.unshift(parsed)
@@ -133,7 +127,7 @@ export default function OrdersPage() {
                 </div>
               )}
 
-              {/* Reorder button */}
+              {/* Shop again */}
               <div className="mt-4">
                 <Link
                   href="/home"

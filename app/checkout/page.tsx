@@ -37,16 +37,7 @@ function CheckoutForm({ clientSecret, onSuccess }: { clientSecret: string; onSuc
 
   return (
     <div>
-      <PaymentElement className="mb-6" options={{
-        style: {
-          base: {
-            color: "#E8E8EA",
-            backgroundColor: "#1C1C1E",
-            fontFamily: "inherit",
-            fontSize: "14px",
-          }
-        }
-      }} />
+      <PaymentElement className="mb-6" />
       {error && (
         <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 mb-4">
           <p className="text-red-400 text-sm">{error}</p>
