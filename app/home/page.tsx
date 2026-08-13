@@ -60,7 +60,7 @@ export default function HomePage() {
       <nav className="flex justify-between items-center px-8 py-4 border-b border-[#2B2B2E] sticky top-0 bg-[#0D0D0F] z-10">
         <div className="flex items-center gap-3">
           <MegaMenu />
-          <h1 className="text-2xl font-bold tracking-widest text-[#E8E8EA]">FIT DROP</h1>
+          <h1 className="text-2xl font-bold tracking-widest text-[#E8E8EA]">FitDrop</h1>
         </div>
         <div className="flex gap-6 text-sm text-[#6b6b6b] items-center">
           <SearchBar />
@@ -89,7 +89,7 @@ export default function HomePage() {
       <section className="flex flex-col items-center justify-center h-[80vh] text-center px-4">
         <p className="text-[#7EC8B8] uppercase tracking-widest text-sm mb-4 font-medium">Fashion. Delivered.</p>
         <h2 className="text-6xl font-bold mb-6 text-[#E8E8EA] leading-tight">Because Waiting<br />Isn't Fashionable</h2>
-        <p className="text-[#6b6b6b] text-lg mb-10 max-w-md">Same-day delivery from your favorite Manhattan stores, straight to your door.</p>
+        <p className="text-[#6b6b6b] text-lg mb-10 max-w-md">Same-day delivery, straight to your door.</p>
         <div className="flex gap-3">
           <button
             onClick={scrollToStores}
