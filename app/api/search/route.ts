@@ -15,7 +15,6 @@ export async function GET(req: NextRequest) {
         { name: { $regex: q, $options: "i" } },
         { store: { $regex: q, $options: "i" } },
         { category: { $regex: q, $options: "i" } },
-        { subcategory: { $regex: q, $options: "i" } },
         { description: { $regex: q, $options: "i" } },
         { tag: { $regex: q, $options: "i" } },
       ]

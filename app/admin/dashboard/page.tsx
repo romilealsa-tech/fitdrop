@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { useUser, useClerk } from "@clerk/nextjs"
 
 type Product = {
   _id: string
@@ -14,9 +15,22 @@ type Product = {
   store: string
 }
 
+const STORES: { slug: string; name: string }[] = [
+  { slug: "zara", name: "Zara" },
+  { slug: "uniqlo", name: "Uniqlo" },
+  { slug: "hm", name: "H&M" },
+  { slug: "nike", name: "Nike" },
+  { slug: "cos", name: "COS" },
+  { slug: "mango", name: "Mango" },
+]
+
 export default function AdminDashboard() {
   const router = useRouter()
-  const [admin, setAdmin] = useState<{ store: string; slug: string; email: string } | null>(null)
+  const { user, isLoaded } = useUser()
+  const { signOut } = useClerk()
+  const role = (user?.publicMetadata as { role?: string } | undefined)?.role
+
+  const [storeSlug, setStoreSlug] = useState(STORES[0].slug)
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
@@ -28,14 +42,19 @@ export default function AdminDashboard() {
   const [showSyncForm, setShowSyncForm] = useState(false)
 
   useEffect(() => {
-    const saved = localStorage.getItem("fitdrop_admin")
-    if (!saved) { router.push("/admin/login"); return }
-    const adminData = JSON.parse(saved)
-    setAdmin(adminData)
-    fetchProducts(adminData.slug)
-  }, [])
+    if (!isLoaded) return
+    if (role !== "admin") {
+      router.push("/admin/login")
+      return
+    }
+    fetchProducts(storeSlug)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoaded, role, storeSlug])
+
+  const currentStore = STORES.find(s => s.slug === storeSlug) ?? STORES[0]
 
   const fetchProducts = async (slug: string) => {
+    setLoading(true)
     const res = await fetch(`/api/admin?slug=${slug}`)
     const data = await res.json()
     setProducts(data.products || [])
@@ -99,8 +118,8 @@ export default function AdminDashboard() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...newProduct,
-        store: admin?.store,
-        slug: admin?.slug,
+        store: currentStore.name,
+        slug: currentStore.slug,
         inStock: true,
       }),
     })
@@ -112,11 +131,10 @@ export default function AdminDashboard() {
   }
 
   const handleLogout = () => {
-    localStorage.removeItem("fitdrop_admin")
-    router.push("/admin/login")
+    signOut(() => router.push("/home"))
   }
 
-  if (loading) return (
+  if (!isLoaded || role !== "admin" || loading) return (
     <main className="min-h-screen bg-[#0D0D0F] flex items-center justify-center">
       <div className="text-[#7EC8B8] text-sm uppercase tracking-widest animate-pulse">Loading inventory...</div>
     </main>
@@ -138,9 +156,9 @@ export default function AdminDashboard() {
       {/* Nav */}
       <nav className="flex justify-between items-center px-8 py-4 border-b border-[#2B2B2E] sticky top-0 bg-[#0D0D0F] z-10">
         <div className="flex items-center gap-3">
-          <span className="text-2xl font-bold tracking-widest text-[#E8E8EA]">FIT DROP</span>
+          <span className="text-2xl font-bold tracking-widest text-[#E8E8EA]">FitDrop</span>
           <span className="text-[#2B2B2E]">|</span>
-          <span className="text-sm text-[#7EC8B8] font-medium">{admin?.store} Portal</span>
+          <span className="text-sm text-[#7EC8B8] font-medium">Admin Portal</span>
         </div>
         <div className="flex items-center gap-4">
           <Link href="/home" className="text-xs text-[#6b6b6b] hover:text-[#E8E8EA] transition">View Store</Link>
@@ -154,8 +172,16 @@ export default function AdminDashboard() {
         <div className="flex justify-between items-start mb-10">
           <div>
             <p className="text-[#7EC8B8] text-xs uppercase tracking-widest mb-1 font-medium">Inventory Management</p>
-            <h2 className="text-3xl font-bold text-[#E8E8EA]">{admin?.store}</h2>
-            <p className="text-[#6b6b6b] text-sm mt-1">{admin?.email}</p>
+            <select
+              value={storeSlug}
+              onChange={e => setStoreSlug(e.target.value)}
+              className="bg-transparent text-3xl font-bold text-[#E8E8EA] focus:outline-none -ml-1"
+            >
+              {STORES.map(s => (
+                <option key={s.slug} value={s.slug} className="bg-[#1C1C1E]">{s.name}</option>
+              ))}
+            </select>
+            <p className="text-[#6b6b6b] text-sm mt-1">{user?.primaryEmailAddress?.emailAddress}</p>
           </div>
           <div className="flex gap-3">
             <button
@@ -207,12 +233,12 @@ export default function AdminDashboard() {
                   const res = await fetch("/api/sync", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ slug: admin?.slug, accessToken: shopifyToken }),
+                    body: JSON.stringify({ slug: currentStore.slug, accessToken: shopifyToken }),
                   })
                   const data = await res.json()
                   if (data.success) {
                     showToast(`Synced ${data.synced} products from Shopify!`)
-                    fetchProducts(admin!.slug)
+                    fetchProducts(currentStore.slug)
                   } else {
                     showToast("Sync failed: " + data.error)
                   }

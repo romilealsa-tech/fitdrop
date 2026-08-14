@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { connectDB } from "@/lib/mongodb"
 import Product from "@/models/Product"
+import { requireAdmin } from "@/lib/adminAuth"
 
 const STORE_CONFIGS: Record<string, { storeName: string; domain: string }> = {
   zara:   { storeName: "Zara",   domain: "zara-fitdrop.myshopify.com" },
@@ -13,6 +14,9 @@ const STORE_CONFIGS: Record<string, { storeName: string; domain: string }> = {
 
 export async function POST(req: NextRequest) {
   try {
+    if (!(await requireAdmin())) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    }
     await connectDB()
     const { slug, accessToken } = await req.json()
 
