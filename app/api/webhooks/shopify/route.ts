@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import crypto from "crypto"
 import { connectDB } from "@/lib/mongodb"
 import Product from "@/models/Product"
 
@@ -12,8 +13,40 @@ const STORE_MAP: Record<string, string> = {
   "mango-fitdrop.myshopify.com":  "mango",
 }
 
+/**
+ * Verifies a Shopify webhook actually came from Shopify by checking the
+ * X-Shopify-Hmac-SHA256 header against an HMAC of the raw request body,
+ * signed with SHOPIFY_WEBHOOK_SECRET (set this in Shopify's webhook config
+ * and in Vercel's environment variables — same secret in both places).
+ *
+ * Must be computed against the raw, unparsed body — Shopify signs the exact
+ * bytes it sent, so parsing to JSON first (which can reorder/reformat)
+ * would make the signature never match.
+ */
+function isValidShopifyWebhook(rawBody: string, hmacHeader: string | null): boolean {
+  const secret = process.env.SHOPIFY_WEBHOOK_SECRET
+  if (!secret || !hmacHeader) return false
+
+  const digest = crypto.createHmac("sha256", secret).update(rawBody, "utf8").digest("base64")
+
+  const digestBuffer = Buffer.from(digest)
+  const headerBuffer = Buffer.from(hmacHeader)
+  if (digestBuffer.length !== headerBuffer.length) return false
+
+  // timingSafeEqual instead of === to avoid leaking timing info that could
+  // help an attacker guess a valid signature byte-by-byte.
+  return crypto.timingSafeEqual(digestBuffer, headerBuffer)
+}
+
 export async function POST(req: NextRequest) {
   try {
+    const rawBody = await req.text()
+    const hmacHeader = req.headers.get("x-shopify-hmac-sha256")
+
+    if (!isValidShopifyWebhook(rawBody, hmacHeader)) {
+      return NextResponse.json({ error: "Invalid webhook signature" }, { status: 401 })
+    }
+
     await connectDB()
 
     const shop = req.headers.get("x-shopify-shop-domain") || ""
@@ -24,7 +57,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unknown store" }, { status: 401 })
     }
 
-    const body = await req.json()
+    const body = JSON.parse(rawBody)
 
     // Handle inventory level updates
     if (topic === "inventory_levels/update") {
