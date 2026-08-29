@@ -9,6 +9,7 @@ export default function NewDrops() {
     { store: "H&M", slug: "hm", item: "Y2K Revival Edit", tag: "Trending", desc: "The 2000s are back and we're here for it" },
     { store: "COS", slug: "cos", item: "Monochrome Series", tag: "Just Dropped", desc: "Clean, architectural pieces in neutral tones" },
     { store: "Mango", slug: "mango", item: "Mediterranean Summer", tag: "New", desc: "Sun-soaked styles from the coast" },
+    { store: "Marlow", slug: "marlow", item: "Studio Essentials", tag: "Just Dropped", desc: "Elevated basics designed for everyday movement" },
   ]
 
   const tagColor = (tag: string) => {

@@ -22,6 +22,7 @@ const STORES: { slug: string; name: string }[] = [
   { slug: "nike", name: "Nike" },
   { slug: "cos", name: "COS" },
   { slug: "mango", name: "Mango" },
+  { slug: "marlow", name: "Marlow" },
 ]
 
 export default function AdminDashboard() {
@@ -161,6 +162,7 @@ export default function AdminDashboard() {
           <span className="text-sm text-[#7EC8B8] font-medium">Admin Portal</span>
         </div>
         <div className="flex items-center gap-4">
+          <Link href="/admin/applications" className="text-xs text-[#6b6b6b] hover:text-[#E8E8EA] transition">Applications</Link>
           <Link href="/home" className="text-xs text-[#6b6b6b] hover:text-[#E8E8EA] transition">View Store</Link>
           <button onClick={handleLogout} className="text-xs text-[#6b6b6b] hover:text-red-400 transition">Sign Out</button>
         </div>

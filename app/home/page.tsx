@@ -13,6 +13,7 @@ const stores = [
   { name: "Nike", slug: "nike", category: "Sport & Lifestyle", time: "20-35 min", fee: "$3.99", lat: 40.7614, lng: -73.9776 },
   { name: "COS", slug: "cos", category: "Minimal & Modern", time: "30-45 min", fee: "$2.99", lat: 40.7233, lng: -74.0030 },
   { name: "Mango", slug: "mango", category: "Mediterranean Style", time: "25-40 min", fee: "$1.99", lat: 40.7589, lng: -73.9851 },
+  { name: "Marlow", slug: "marlow", category: "Elevated Everyday", time: "25-40 min", fee: "$2.49", lat: 40.7245, lng: -73.9968 },
 ]
 
 function getDistance(lat1: number, lng1: number, lat2: number, lng2: number) {
@@ -152,6 +153,17 @@ export default function HomePage() {
           ))}
         </div>
       </section>
+
+      {/* Footer */}
+      <footer className="border-t border-[#2B2B2E] px-8 py-10 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <p className="text-[#6b6b6b] text-sm">© 2026 FitDrop. Fashion. Delivered.</p>
+        <Link
+          href="/drive"
+          className="text-sm text-[#7EC8B8] hover:underline font-medium"
+        >
+          🛵 Drive with FitDrop — Apply now
+        </Link>
+      </footer>
 
     </main>
   )

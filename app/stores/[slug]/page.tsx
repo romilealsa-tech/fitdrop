@@ -15,7 +15,7 @@ export default function StorePage({ params }: { params: Promise<{ slug: string }
 
   const storeNames: Record<string, string> = {
     zara: "Zara", uniqlo: "Uniqlo", hm: "H&M",
-    nike: "Nike", cos: "COS", mango: "Mango"
+    nike: "Nike", cos: "COS", mango: "Mango", marlow: "Marlow"
   }
 
   useEffect(() => {

@@ -2,15 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { connectDB } from "@/lib/mongodb"
 import Product from "@/models/Product"
 import { requireAdmin } from "@/lib/adminAuth"
-
-const STORE_CONFIGS: Record<string, { storeName: string; domain: string }> = {
-  zara:   { storeName: "Zara",   domain: "zara-fitdrop.myshopify.com" },
-  uniqlo: { storeName: "Uniqlo", domain: "uniqlo-fitdrop.myshopify.com" },
-  hm:     { storeName: "H&M",    domain: "hm-fitdrop.myshopify.com" },
-  nike:   { storeName: "Nike",   domain: "nike-fitdrop.myshopify.com" },
-  cos:    { storeName: "COS",    domain: "cos-fitdrop.myshopify.com" },
-  mango:  { storeName: "Mango",  domain: "mango-fitdrop.myshopify.com" },
-}
+import { STORE_CONFIGS } from "@/lib/storeConfig"
 
 export async function POST(req: NextRequest) {
   try {

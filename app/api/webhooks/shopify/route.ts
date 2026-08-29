@@ -2,16 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import crypto from "crypto"
 import { connectDB } from "@/lib/mongodb"
 import Product from "@/models/Product"
-
-// Map Shopify store domains to FIT DROP slugs
-const STORE_MAP: Record<string, string> = {
-  "zara-fitdrop.myshopify.com":   "zara",
-  "uniqlo-fitdrop.myshopify.com": "uniqlo",
-  "hm-fitdrop.myshopify.com":     "hm",
-  "nike-fitdrop.myshopify.com":   "nike",
-  "cos-fitdrop.myshopify.com":    "cos",
-  "mango-fitdrop.myshopify.com":  "mango",
-}
+import { STORE_MAP } from "@/lib/storeConfig"
 
 /**
  * Verifies a Shopify webhook actually came from Shopify by checking the
