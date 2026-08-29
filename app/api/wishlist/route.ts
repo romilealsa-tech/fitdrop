@@ -1,13 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { connectDB } from "@/lib/mongodb"
-import mongoose from "mongoose"
-
-const WishlistSchema = new mongoose.Schema({
-  userId: { type: String, required: true, unique: true },
-  items: { type: Array, default: [] },
-}, { timestamps: true })
-
-const Wishlist = mongoose.models.Wishlist || mongoose.model("Wishlist", WishlistSchema)
+import Wishlist from "@/models/Wishlist"
 
 export async function GET(req: NextRequest) {
   try {
