@@ -123,7 +123,7 @@ export default function CheckoutPage() {
     setLoadingPayment(false)
   }
 
-  const handlePaymentSuccess = () => {
+  const handlePaymentSuccess = async () => {
     const effectiveBilling = billingSameAsDelivery ? {
       firstName: address.firstName, lastName: address.lastName,
       street: address.street, apt: address.apt,
@@ -136,6 +136,18 @@ export default function CheckoutPage() {
       address,
       billing: effectiveBilling,
     }))
+
+    // Persist the order server-side so it can be assigned to a driver.
+    try {
+      await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: cart, total: orderTotal.toFixed(2), address }),
+      })
+    } catch (err) {
+      console.error("Failed to save order for driver assignment:", err)
+    }
+
     router.push("/order")
   }
 

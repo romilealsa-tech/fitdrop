@@ -12,18 +12,20 @@ export type StoreConfig = {
   name: string
   /** Real Shopify domain, e.g. "my-brand.myshopify.com". Only needed if this store syncs via Shopify. */
   shopifyDomain?: string
+  /** Pickup address used for driver assignment. Made up for demo/test stores. */
+  pickupAddress?: string
 }
 
 export const STORE_REGISTRY: StoreConfig[] = [
-  { slug: "zara", name: "Zara", shopifyDomain: "zara-fitdrop.myshopify.com" },
-  { slug: "uniqlo", name: "Uniqlo", shopifyDomain: "uniqlo-fitdrop.myshopify.com" },
-  { slug: "hm", name: "H&M", shopifyDomain: "hm-fitdrop.myshopify.com" },
-  { slug: "nike", name: "Nike", shopifyDomain: "nike-fitdrop.myshopify.com" },
-  { slug: "cos", name: "COS", shopifyDomain: "cos-fitdrop.myshopify.com" },
-  { slug: "mango", name: "Mango", shopifyDomain: "mango-fitdrop.myshopify.com" },
+  { slug: "zara", name: "Zara", shopifyDomain: "zara-fitdrop.myshopify.com", pickupAddress: "503 5th Ave, New York, NY 10017" },
+  { slug: "uniqlo", name: "Uniqlo", shopifyDomain: "uniqlo-fitdrop.myshopify.com", pickupAddress: "546 Broadway, New York, NY 10012" },
+  { slug: "hm", name: "H&M", shopifyDomain: "hm-fitdrop.myshopify.com", pickupAddress: "435 7th Ave, New York, NY 10001" },
+  { slug: "nike", name: "Nike", shopifyDomain: "nike-fitdrop.myshopify.com", pickupAddress: "650 5th Ave, New York, NY 10019" },
+  { slug: "cos", name: "COS", shopifyDomain: "cos-fitdrop.myshopify.com", pickupAddress: "129 Prince St, New York, NY 10012" },
+  { slug: "mango", name: "Mango", shopifyDomain: "mango-fitdrop.myshopify.com", pickupAddress: "1 Herald Sq, New York, NY 10001" },
   // Demo store used for internal testing / showing the app to prospective brands.
   // Not connected to Shopify — its products are added directly in MongoDB.
-  { slug: "marlow", name: "Marlow" },
+  { slug: "marlow", name: "Marlow", pickupAddress: "180 Orchard St, New York, NY 10002" },
 ]
 
 export const STORE_CONFIGS: Record<string, { storeName: string; domain: string }> =
@@ -40,4 +42,8 @@ export const STORE_MAP: Record<string, string> = Object.fromEntries(
 
 export const STORE_NAMES: Record<string, string> = Object.fromEntries(
   STORE_REGISTRY.map(s => [s.slug, s.name])
+)
+
+export const STORE_PICKUP_ADDRESSES: Record<string, string> = Object.fromEntries(
+  STORE_REGISTRY.filter(s => s.pickupAddress).map(s => [s.slug, s.pickupAddress!])
 )
