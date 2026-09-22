@@ -2,15 +2,15 @@
 import React, { useEffect, useState } from "react"
 import Link from "next/link"
 import { useCart } from "../../../CartContext"
+import ProductImage from "../../../components/ProductImage"
+import { getProductImage } from "../../../../lib/images"
 
 export default function ShopPage({ params }: { params: Promise<{ gender: string; subcategory: string }> }) {
   const { gender, subcategory } = React.use(params)
-  const { addToCart, cart } = useCart()
+  const { addToCart } = useCart()
   const [products, setProducts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedBrand, setSelectedBrand] = useState("All")
-
-  const cartCount = cart.reduce((sum: number, i: any) => sum + i.qty, 0)
 
   const genderLabel = gender.charAt(0).toUpperCase() + gender.slice(1)
   const subcategoryLabel = subcategory === "all"
@@ -55,21 +55,6 @@ export default function ShopPage({ params }: { params: Promise<{ gender: string;
   return (
     <main className="min-h-screen bg-[#0D0D0F] text-[#E8E8EA]">
 
-      {/* Nav */}
-      <nav className="flex justify-between items-center px-8 py-4 border-b border-[#2B2B2E] sticky top-0 bg-[#0D0D0F] z-10">
-        <Link href="/home" className="text-2xl font-bold tracking-widest text-[#E8E8EA]">FIT DROP</Link>
-        <div className="flex gap-6 text-sm text-[#6b6b6b] items-center">
-          <Link href="/home" className="hover:text-[#E8E8EA] transition">Stores</Link>
-          <Link href="/new-drops" className="hover:text-[#E8E8EA] transition">New Drops</Link>
-          <Link href="/cart" className="text-[#E8E8EA] flex items-center gap-1 hover:text-[#7EC8B8] transition">
-            Cart {cartCount > 0 && (
-              <span className="bg-[#7EC8B8] text-[#0D0D0F] rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
-                {cartCount}
-              </span>
-            )}
-          </Link>
-        </div>
-      </nav>
 
       <div className="px-8 py-8">
 
@@ -136,11 +121,16 @@ export default function ShopPage({ params }: { params: Promise<{ gender: string;
               <Link
                 key={product._id}
                 href={`/stores/${product.slug}/${product._id}`}
-                className="bg-[#1C1C1E] border border-[#2B2B2E] rounded-2xl p-5 hover:border-[#7EC8B8] transition block group"
+                className="bg-[#1C1C1E] border border-[#2B2B2E] rounded-2xl overflow-hidden hover:border-[#7EC8B8] transition block group"
               >
-                <div className="w-full h-44 bg-[#2B2B2E] rounded-xl mb-4 flex items-center justify-center">
-                  <span className="text-3xl">📦</span>
-                </div>
+                <ProductImage
+                  src={getProductImage(product)}
+                  alt={`${product.name} — ${product.store}`}
+                  aspect="aspect-[4/5]"
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                  imgClassName="group-hover:scale-105 transition duration-500"
+                />
+                <div className="p-4">
 
                 {/* Store badge */}
                 <span className="text-xs text-[#7EC8B8] font-medium">{product.store}</span>
@@ -181,6 +171,7 @@ export default function ShopPage({ params }: { params: Promise<{ gender: string;
                   >
                     Add
                   </button>
+                </div>
                 </div>
               </Link>
             ))}

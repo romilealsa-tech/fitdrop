@@ -2,6 +2,8 @@
 import { useWishlist } from "../WishlistContext"
 import Link from "next/link"
 import { useCart } from "../CartContext"
+import ProductImage from "./ProductImage"
+import { getProductImage } from "../../lib/images"
 
 export default function WishlistDrawer() {
   const { wishlist, removeFromWishlist, open, setOpen } = useWishlist()
@@ -47,10 +49,13 @@ export default function WishlistDrawer() {
             <div className="flex flex-col gap-4">
               {wishlist.map((product: any) => (
                 <div key={product._id} className="bg-[#1C1C1E] border border-[#2B2B2E] rounded-2xl p-4 flex gap-4">
-                  {/* Image placeholder */}
-                  <div className="w-16 h-16 bg-[#2B2B2E] rounded-xl flex items-center justify-center shrink-0">
-                    <span className="text-2xl">📦</span>
-                  </div>
+                  <ProductImage
+                    src={getProductImage(product)}
+                    alt={product.name}
+                    aspect="aspect-[4/5]"
+                    sizes="80px"
+                    className="w-16 rounded-xl shrink-0"
+                  />
 
                   {/* Info */}
                   <div className="flex-1 min-w-0">

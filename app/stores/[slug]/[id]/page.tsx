@@ -3,19 +3,22 @@ import React, { useEffect, useState } from "react"
 import Link from "next/link"
 import { useCart } from "../../../CartContext"
 import { useWishlist } from "../../../WishlistContext"
+import ProductImage from "../../../components/ProductImage"
+import { getProductImages } from "../../../../lib/images"
 
 export default function ProductPage({ params }: { params: Promise<{ slug: string; id: string }> }) {
   const { slug, id } = React.use(params)
-  const { addToCart, cart } = useCart()
+  const { addToCart } = useCart()
   const { addToWishlist, removeFromWishlist, isWishlisted, setOpen } = useWishlist()
   const [product, setProduct] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [selectedSize, setSelectedSize] = useState("")
   const [selectedColor, setSelectedColor] = useState("")
   const [added, setAdded] = useState(false)
+  const [activeImage, setActiveImage] = useState(0)
 
-  const cartCount = cart.reduce((sum: number, i: any) => sum + i.qty, 0)
   const wishlisted = product ? isWishlisted(product._id) : false
+  const gallery = product ? getProductImages({ ...product, slug }, 4) : []
 
   useEffect(() => {
     fetch(`/api/products?slug=${slug}`)
@@ -110,24 +113,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
   return (
     <main className="min-h-screen bg-[#0D0D0F] text-[#E8E8EA]">
 
-      {/* Nav */}
-      <nav className="flex justify-between items-center px-8 py-4 border-b border-[#2B2B2E] sticky top-0 bg-[#0D0D0F] z-10">
-        <Link href="/home" className="text-2xl font-bold tracking-widest text-[#E8E8EA]">FIT DROP</Link>
-        <div className="flex gap-6 text-sm text-[#6b6b6b] items-center">
-          <Link href="/home" className="hover:text-[#E8E8EA] transition">Stores</Link>
-          <Link href="/new-drops" className="hover:text-[#E8E8EA] transition">New Drops</Link>
-          <button onClick={() => setOpen(true)} className="hover:text-[#E8E8EA] transition">Wishlist</button>
-          <Link href="/cart" className="text-[#E8E8EA] flex items-center gap-1 hover:text-[#7EC8B8] transition">
-            Cart {cartCount > 0 && (
-              <span className="bg-[#7EC8B8] text-[#0D0D0F] rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
-                {cartCount}
-              </span>
-            )}
-          </Link>
-        </div>
-      </nav>
-
-      <div className="max-w-5xl mx-auto px-8 py-10">
+      <div className="max-w-5xl mx-auto px-4 sm:px-8 py-8">
 
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-[#6b6b6b] mb-8">
@@ -140,22 +126,33 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
 
-          {/* Left: Image */}
+          {/* Left: Gallery — large main image + real thumbnails */}
           <div>
-            <div className="bg-[#1C1C1E] border border-[#2B2B2E] rounded-2xl aspect-square flex items-center justify-center mb-4">
-              <div className="text-center">
-                <div className="text-6xl mb-4">📦</div>
-                <p className="text-[#6b6b6b] text-sm">Product Image</p>
-                <p className="text-[#2B2B2E] text-xs mt-1">Coming with brand sync</p>
+            <ProductImage
+              key={gallery[activeImage]}
+              src={gallery[activeImage] || gallery[0]}
+              alt={`${product.name} — ${product.store}`}
+              aspect="aspect-[4/5]"
+              sizes="(max-width: 1024px) 100vw, 480px"
+              priority
+              className="rounded-2xl border border-[#2B2B2E] mb-3"
+            />
+            {gallery.length > 1 && (
+              <div className="grid grid-cols-4 gap-2">
+                {gallery.map((src, i) => (
+                  <button
+                    key={src}
+                    onClick={() => setActiveImage(i)}
+                    aria-label={`Show image ${i + 1} of ${product.name}`}
+                    className={`rounded-xl overflow-hidden border-2 transition ${
+                      i === activeImage ? "border-[#7EC8B8]" : "border-[#2B2B2E] hover:border-[#6b6b6b] opacity-70 hover:opacity-100"
+                    }`}
+                  >
+                    <ProductImage src={src} alt="" aspect="aspect-square" sizes="120px" />
+                  </button>
+                ))}
               </div>
-            </div>
-            <div className="grid grid-cols-4 gap-2">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className={`bg-[#1C1C1E] border rounded-xl aspect-square flex items-center justify-center cursor-pointer transition ${i === 0 ? "border-[#7EC8B8]" : "border-[#2B2B2E] hover:border-[#6b6b6b]"}`}>
-                  <span className="text-[#2B2B2E] text-lg">📦</span>
-                </div>
-              ))}
-            </div>
+            )}
           </div>
 
           {/* Right: Details */}

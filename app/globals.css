@@ -1,8 +1,10 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* FitDrop is dark-only: keep the page background dark in light mode too
+     (otherwise gaps like the footer margin show up white) */
+  --background: #0D0D0F;
+  --foreground: #E8E8EA;
 }
 
 @theme inline {
@@ -14,8 +16,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #0D0D0F;
+    --foreground: #E8E8EA;
   }
 }
 

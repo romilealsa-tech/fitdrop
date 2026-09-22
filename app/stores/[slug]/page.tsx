@@ -1,22 +1,21 @@
 "use client"
 import { useEffect, useState } from "react"
+import React from "react"
 import Link from "next/link"
-import { useCart } from "../../CartContext"
+import ProductImage from "../../components/ProductImage"
+import StoreLogo from "../../components/StoreLogo"
+import { getProductImage, getStoreCover } from "../../../lib/images"
+import { STORE_BY_SLUG } from "../../../lib/stores"
 
 export default function StorePage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = require("react").use(params)
-  const { cart } = useCart()
+  const { slug } = React.use(params)
   const [products, setProducts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [activeCategory, setActiveCategory] = useState("All")
 
-  const cartCount = cart.reduce((sum: number, i: any) => sum + i.qty, 0)
-
-  const storeNames: Record<string, string> = {
-    zara: "Zara", uniqlo: "Uniqlo", hm: "H&M",
-    nike: "Nike", cos: "COS", mango: "Mango", marlow: "Marlow"
-  }
+  const info = STORE_BY_SLUG[slug]
+  const storeName = info?.name || slug
 
   useEffect(() => {
     fetch(`/api/products?slug=${slug}`)
@@ -34,26 +33,29 @@ export default function StorePage({ params }: { params: Promise<{ slug: string }
 
   return (
     <main className="min-h-screen bg-[#0D0D0F] text-[#E8E8EA]">
-      <nav className="flex justify-between items-center px-8 py-4 border-b border-[#2B2B2E] sticky top-0 bg-[#0D0D0F] z-10">
-        <Link href="/home" className="text-2xl font-bold tracking-widest text-[#E8E8EA]">FIT DROP</Link>
-        <div className="flex gap-6 text-sm text-[#6b6b6b] items-center">
-          <Link href="/home" className="hover:text-[#E8E8EA] transition">Stores</Link>
-          <Link href="/new-drops" className="hover:text-[#E8E8EA] transition">New Drops</Link>
-          <Link href="/cart" className="text-[#E8E8EA] flex items-center gap-1 hover:text-[#7EC8B8] transition">
-            Cart {cartCount > 0 && (
-              <span className="bg-[#7EC8B8] text-[#0D0D0F] rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
-                {cartCount}
-              </span>
-            )}
-          </Link>
-        </div>
-      </nav>
+      <div className="max-w-6xl mx-auto px-4 sm:px-8 py-8">
+        <Link href="/home#stores" className="text-[#6b6b6b] text-sm hover:text-[#E8E8EA] transition">← All Stores</Link>
 
-      <div className="max-w-6xl mx-auto px-8 py-10">
-        <div className="mb-8">
-          <Link href="/home" className="text-[#6b6b6b] text-sm hover:text-[#E8E8EA] transition">← All Stores</Link>
-          <h1 className="text-4xl font-bold text-[#E8E8EA] mt-2">{storeNames[slug] || slug}</h1>
-          <p className="text-[#6b6b6b] mt-1">{products.length} items available</p>
+        {/* Store header */}
+        <div className="relative mt-3 mb-8 rounded-2xl overflow-hidden border border-[#2B2B2E]">
+          <ProductImage
+            src={getStoreCover(slug)}
+            alt={`${storeName} storefront`}
+            aspect="aspect-[16/7] sm:aspect-[16/5]"
+            sizes="(max-width: 1152px) 100vw, 1152px"
+            priority
+            imgClassName="brightness-75"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0D0D0F] via-[#0D0D0F]/40 to-transparent" />
+          <div className="absolute bottom-0 left-0 p-5 sm:p-6 flex items-end gap-4">
+            <StoreLogo slug={slug} name={storeName} size="lg" />
+            <div>
+              <h1 className="text-3xl sm:text-4xl font-bold text-[#E8E8EA]">{storeName}</h1>
+              <p className="text-[#b5b5b8] text-sm mt-1">
+                {info ? `${info.category} · ${info.time} · ${info.fee} delivery · ` : ""}{products.length} items
+              </p>
+            </div>
+          </div>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4 mb-8">
@@ -82,12 +84,14 @@ export default function StorePage({ params }: { params: Promise<{ slug: string }
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="bg-[#1C1C1E] border border-[#2B2B2E] rounded-2xl p-6 animate-pulse">
-                <div className="w-full h-40 bg-[#2B2B2E] rounded-xl mb-4" />
-                <div className="h-4 bg-[#2B2B2E] rounded w-3/4 mb-2" />
-                <div className="h-3 bg-[#2B2B2E] rounded w-1/2" />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {[...Array(8)].map((_, i) => (
+              <div key={i} className="bg-[#1C1C1E] border border-[#2B2B2E] rounded-2xl overflow-hidden animate-pulse">
+                <div className="w-full aspect-[4/5] bg-[#2B2B2E]" />
+                <div className="p-4">
+                  <div className="h-4 bg-[#2B2B2E] rounded w-3/4 mb-2" />
+                  <div className="h-3 bg-[#2B2B2E] rounded w-1/2" />
+                </div>
               </div>
             ))}
           </div>
@@ -96,17 +100,21 @@ export default function StorePage({ params }: { params: Promise<{ slug: string }
             <p className="text-[#6b6b6b]">No products found</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {filtered.map((product: any) => (
               <Link
                 key={product._id}
                 href={`/stores/${slug}/${product._id}`}
-                className="bg-[#1C1C1E] border border-[#2B2B2E] rounded-2xl p-5 hover:border-[#7EC8B8] transition block group"
+                className="bg-[#1C1C1E] border border-[#2B2B2E] rounded-2xl overflow-hidden hover:border-[#7EC8B8] transition block group"
               >
-                <div className="w-full h-40 bg-[#2B2B2E] rounded-xl mb-4 flex items-center justify-center">
-                  <span className="text-4xl">📦</span>
-                </div>
-                <div className="flex items-start justify-between gap-2">
+                <ProductImage
+                  src={getProductImage({ ...product, slug })}
+                  alt={`${product.name} — ${storeName}`}
+                  aspect="aspect-[4/5]"
+                  sizes="(max-width: 1024px) 50vw, 25vw"
+                  imgClassName="group-hover:scale-105 transition duration-500"
+                />
+                <div className="p-4 flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-[#E8E8EA] truncate">{product.name}</p>
                     <p className="text-xs text-[#6b6b6b] mt-0.5">{product.category}</p>

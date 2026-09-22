@@ -2,6 +2,8 @@
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import ProductImage from "./ProductImage"
+import { getProductImage } from "../../lib/images"
 
 export default function SearchBar() {
   const [query, setQuery] = useState("")
@@ -103,13 +105,16 @@ export default function SearchBar() {
                   onClick={() => { setOpen(false); setQuery("") }}
                   className="flex items-center gap-3 px-4 py-3 hover:bg-[#2B2B2E] transition"
                 >
-                  {/* Placeholder image */}
-                  <div className="w-10 h-10 bg-[#2B2B2E] rounded-lg flex items-center justify-center shrink-0">
-                    <span className="text-sm">📦</span>
-                  </div>
+                  <ProductImage
+                    src={getProductImage(product)}
+                    alt=""
+                    aspect="aspect-square"
+                    sizes="48px"
+                    className="w-10 rounded-lg shrink-0"
+                  />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-[#E8E8EA] truncate">{product.name}</p>
-                    <p className="text-xs text-[#6b6b6b]">{product.store} · {product.subcategory}</p>
+                    <p className="text-xs text-[#6b6b6b]">{product.store} · {product.subcategory || product.category}</p>
                   </div>
                   <div className="text-right shrink-0">
                     <p className="text-sm font-bold text-[#7EC8B8]">{product.price}</p>

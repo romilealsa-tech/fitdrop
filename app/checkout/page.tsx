@@ -3,6 +3,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCart } from "../CartContext"
+import { deliveryFeeFor } from "../../lib/stores"
 import { loadStripe } from "@stripe/stripe-js"
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js"
 
@@ -83,7 +84,7 @@ export default function CheckoutPage() {
 
   const [errors, setErrors] = useState<Record<string, string>>({})
 
-  const delivery = 3.99
+  const delivery = deliveryFeeFor(cart)
   const tax = total * 0.08875
   const orderTotal = total + delivery + tax
 
@@ -156,14 +157,11 @@ export default function CheckoutPage() {
 
   return (
     <main className="min-h-screen bg-[#0D0D0F] text-[#E8E8EA]">
-
-      {/* Nav */}
-      <nav className="flex justify-between items-center px-8 py-4 border-b border-[#2B2B2E] sticky top-0 bg-[#0D0D0F] z-10">
-        <Link href="/home" className="text-2xl font-bold tracking-widest text-[#E8E8EA]">FIT DROP</Link>
+      <div className="max-w-5xl mx-auto px-4 sm:px-8 pt-6">
         <Link href="/cart" className="text-[#6b6b6b] text-sm hover:text-[#E8E8EA] transition">← Back to Cart</Link>
-      </nav>
+      </div>
 
-      <div className="max-w-5xl mx-auto px-8 py-10 grid grid-cols-1 lg:grid-cols-3 gap-10">
+      <div className="max-w-5xl mx-auto px-4 sm:px-8 py-8 grid grid-cols-1 lg:grid-cols-3 gap-10">
 
         {/* Left */}
         <div className="lg:col-span-2">

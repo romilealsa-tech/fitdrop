@@ -1,11 +1,11 @@
 "use client"
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { useWishlist } from "../WishlistContext"
+import ProductImage from "../components/ProductImage"
+import { getProductImage } from "../../lib/images"
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<any[]>([])
-  const { setOpen, wishlist } = useWishlist()
 
   useEffect(() => {
     // Load current order
@@ -41,26 +41,6 @@ export default function OrdersPage() {
   return (
     <main className="min-h-screen bg-[#0D0D0F] text-[#E8E8EA]">
 
-      {/* Nav */}
-      <nav className="flex justify-between items-center px-8 py-4 border-b border-[#2B2B2E] sticky top-0 bg-[#0D0D0F] z-10">
-        <Link href="/home" className="text-2xl font-bold tracking-widest text-[#E8E8EA]">FIT DROP</Link>
-        <div className="flex gap-6 text-sm text-[#6b6b6b] items-center">
-          <Link href="/home" className="hover:text-[#E8E8EA] transition">Stores</Link>
-          <Link href="/new-drops" className="hover:text-[#E8E8EA] transition">New Drops</Link>
-          <button
-            onClick={() => setOpen(true)}
-            className="relative hover:text-[#E8E8EA] transition flex items-center gap-1"
-          >
-            ♡
-            {wishlist.length > 0 && (
-              <span className="bg-red-400 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs font-bold">
-                {wishlist.length}
-              </span>
-            )}
-          </button>
-          <Link href="/cart" className="hover:text-[#E8E8EA] transition">Cart</Link>
-        </div>
-      </nav>
 
       <div className="max-w-3xl mx-auto px-8 py-12">
 
@@ -109,9 +89,13 @@ export default function OrdersPage() {
               <div className="flex flex-col gap-3 mb-5">
                 {order.items?.map((item: any, j: number) => (
                   <div key={j} className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-[#2B2B2E] rounded-xl flex items-center justify-center shrink-0">
-                      <span className="text-sm">📦</span>
-                    </div>
+                    <ProductImage
+                      src={getProductImage(item)}
+                      alt={item.name}
+                      aspect="aspect-square"
+                      sizes="48px"
+                      className="w-10 rounded-xl shrink-0"
+                    />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-[#E8E8EA] truncate">{item.name}</p>
                       <p className="text-xs text-[#6b6b6b]">Qty: {item.qty}</p>

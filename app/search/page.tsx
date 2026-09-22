@@ -2,9 +2,9 @@
 import { useEffect, useState, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import Link from "next/link"
-import { SignOutButton } from "@clerk/nextjs"
-import MegaMenu from "../components/MegaMenu"
-import SearchBar from "../components/SearchBar"
+import ProductImage from "../components/ProductImage"
+import StoreLogo from "../components/StoreLogo"
+import { getProductImage } from "../../lib/images"
 
 function SearchResults() {
   const searchParams = useSearchParams()
@@ -38,33 +38,15 @@ function SearchResults() {
   return (
     <main className="min-h-screen bg-[#0D0D0F] text-[#E8E8EA]">
 
-      {/* Nav */}
-      <nav className="flex justify-between items-center px-8 py-4 border-b border-[#2B2B2E] sticky top-0 bg-[#0D0D0F] z-10">
-        <div className="flex items-center gap-3">
-          <MegaMenu />
-          <Link href="/home">
-            <h1 className="text-2xl font-bold tracking-widest text-[#E8E8EA]">FIT DROP</h1>
-          </Link>
-        </div>
-        <div className="flex gap-6 text-sm text-[#6b6b6b] items-center">
-          <SearchBar />
-          <Link href="/home#stores" className="hover:text-[#E8E8EA] transition">Stores</Link>
-          <Link href="/new-drops" className="hover:text-[#E8E8EA] transition">New Drops</Link>
-          <Link href="/cart" className="hover:text-[#E8E8EA] transition">Cart</Link>
-          <SignOutButton>
-            <button className="text-[#6b6b6b] hover:text-[#E8E8EA] transition">Sign Out</button>
-          </SignOutButton>
-        </div>
-      </nav>
 
       <div className="px-8 py-12 max-w-6xl mx-auto">
 
         {/* Header */}
         <div className="mb-10">
           <p className="text-[#7EC8B8] uppercase tracking-widest text-xs mb-2 font-medium">Search Results</p>
-          <h2 className="text-4xl font-bold text-[#E8E8EA]">
+          <h1 className="text-4xl font-bold text-[#E8E8EA]">
             {loading ? "Searching..." : `"${query}"`}
-          </h2>
+          </h1>
           {!loading && (
             <p className="text-[#6b6b6b] mt-2 text-sm">
               {results.length === 0
@@ -109,9 +91,7 @@ function SearchResults() {
               <div key={store}>
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-[#2B2B2E] rounded-full flex items-center justify-center">
-                      <span className="text-[#7EC8B8] font-bold text-xs">{store[0]}</span>
-                    </div>
+                    <StoreLogo slug={products[0].slug} name={store} size="sm" />
                     <h3 className="text-lg font-semibold text-[#E8E8EA]">{store}</h3>
                     <span className="text-xs text-[#6b6b6b]">{products.length} item{products.length !== 1 ? "s" : ""}</span>
                   </div>
@@ -123,26 +103,22 @@ function SearchResults() {
                   </Link>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                   {products.map((product) => (
                     <Link
                       key={product._id}
                       href={`/stores/${product.slug}/${product._id}`}
-                      className="bg-[#1C1C1E] border border-[#2B2B2E] rounded-2xl p-5 hover:border-[#7EC8B8] transition block group"
+                      className="bg-[#1C1C1E] border border-[#2B2B2E] rounded-2xl overflow-hidden hover:border-[#7EC8B8] transition block group"
                     >
-                      {/* Image or placeholder */}
-                      <div className="w-full h-40 bg-[#2B2B2E] rounded-xl mb-4 flex items-center justify-center overflow-hidden">
-                        {product.images?.[0] ? (
-                          <img
-                            src={product.images[0]}
-                            alt={product.name}
-                            className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-                          />
-                        ) : (
-                          <span className="text-4xl">📦</span>
-                        )}
-                      </div>
+                      <ProductImage
+                        src={getProductImage(product)}
+                        alt={`${product.name} — ${store}`}
+                        aspect="aspect-[4/5]"
+                        sizes="(max-width: 1024px) 50vw, 25vw"
+                        imgClassName="group-hover:scale-105 transition duration-500"
+                      />
 
+                      <div className="p-4">
                       {/* Info */}
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
@@ -175,6 +151,7 @@ function SearchResults() {
                           )}
                         </div>
                       )}
+                      </div>
                     </Link>
                   ))}
                 </div>

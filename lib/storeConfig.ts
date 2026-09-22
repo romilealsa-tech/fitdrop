@@ -1,8 +1,8 @@
 // Central registry of every store FitDrop supports.
 //
 // To onboard a REAL brand: add one entry here with their real Shopify
-// domain, then add the same slug/name to the `stores` array in
-// app/home/page.tsx (for the homepage store card) and to `STORES` in
+// domain, then add the same slug/name to `STORES` in lib/stores.ts
+// (homepage card, footer, SEO) and to `STORES` in
 // app/admin/dashboard/page.tsx (so admins can manage that store's
 // inventory). Everything else (search, shop filters, sync, webhooks)
 // reads from here or derives brand names directly from product data.

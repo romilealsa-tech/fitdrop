@@ -41,15 +41,6 @@ export default function DrivePage() {
   return (
     <main className="min-h-screen bg-[#0D0D0F] text-[#E8E8EA]">
 
-      {/* Nav */}
-      <nav className="flex justify-between items-center px-8 py-4 border-b border-[#2B2B2E] sticky top-0 bg-[#0D0D0F] z-10">
-        <Link href="/home" className="text-2xl font-bold tracking-widest text-[#E8E8EA]">FitDrop</Link>
-        <div className="flex gap-6 text-sm text-[#6b6b6b] items-center">
-          <Link href="/home" className="hover:text-[#E8E8EA] transition">Stores</Link>
-          <Link href="/new-drops" className="hover:text-[#E8E8EA] transition">New Drops</Link>
-          <Link href="/drive" className="text-[#7EC8B8]">Drive</Link>
-        </div>
-      </nav>
 
       {/* Hero */}
       <section className="px-8 pt-16 pb-12 max-w-3xl mx-auto text-center">
