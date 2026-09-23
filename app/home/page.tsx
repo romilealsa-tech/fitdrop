@@ -3,9 +3,9 @@ import { useRef, useState } from "react"
 import Link from "next/link"
 import ProductImage from "../components/ProductImage"
 import StoreLogo from "../components/StoreLogo"
-import { StoreIcon, BagIcon, ScooterIcon, ClockIcon, PinIcon, TagIcon } from "../components/Icons"
-import { STORES, MIN_DELIVERY_FEE, type StoreCard } from "../../lib/stores"
-import { getStoreCover, STORE_COVERS } from "../../lib/images"
+import { ScooterIcon, ClockIcon, PinIcon } from "../components/Icons"
+import { STORES, type StoreCard } from "../../lib/stores"
+import { getStoreCover } from "../../lib/images"
 
 type SortedStore = StoreCard & { distance?: string }
 
@@ -19,20 +19,8 @@ function getDistance(lat1: number, lng1: number, lat2: number, lng2: number) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
-const STEPS = [
-  { icon: StoreIcon, title: "Pick a store", text: "Browse Zara, Uniqlo, Nike and more — all nearby in Manhattan." },
-  { icon: BagIcon, title: "Build your order", text: "Choose sizes and colors, add to cart and check out securely." },
-  { icon: ScooterIcon, title: "Get it today", text: "A FitDrop driver picks it up and brings it to your door." },
-]
 
-const BENEFITS = [
-  { icon: ClockIcon, text: "Same-day delivery" },
-  { icon: PinIcon, text: "Stores near you" },
-  { icon: TagIcon, text: `Delivery from ${MIN_DELIVERY_FEE}` },
-]
 
-// Three editorial photos for the hero collage
-const HERO_PHOTOS = [STORE_COVERS.zara, STORE_COVERS.mango, STORE_COVERS.uniqlo]
 
 export default function HomePage() {
   const storesRef = useRef<HTMLElement>(null)
@@ -63,17 +51,17 @@ export default function HomePage() {
   return (
     <main className="bg-[#0D0D0F] text-[#E8E8EA]">
 
-      {/* Hero — compact, two columns on desktop */}
-      <section className="px-4 sm:px-8 pt-10 pb-8 md:pt-14 md:pb-10 grid md:grid-cols-2 gap-10 items-center max-w-7xl mx-auto">
-        <div className="text-center md:text-left">
+      {/* Hero — compact */}
+      <section className="px-4 sm:px-8 pt-12 pb-10 md:pt-16 md:pb-12 max-w-7xl mx-auto">
+        <div className="text-center">
           <p className="text-[#7EC8B8] uppercase tracking-widest text-sm mb-3 font-medium">Fashion. Delivered.</p>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-4 text-[#E8E8EA] leading-tight">
             Because Waiting<br />Isn&apos;t Fashionable
           </h1>
-          <p className="text-[#8a8a8e] text-lg mb-7 max-w-md mx-auto md:mx-0">
+          <p className="text-[#8a8a8e] text-lg mb-7 max-w-md mx-auto">
             Same-day delivery, straight to your door.
           </p>
-          <div className="flex gap-3 justify-center md:justify-start flex-wrap">
+          <div className="flex gap-3 justify-center flex-wrap">
             <button
               onClick={scrollToStores}
               className="bg-[#7EC8B8] text-[#0D0D0F] px-8 py-3 rounded-full font-bold hover:bg-[#6ab5a5] transition"
@@ -93,49 +81,8 @@ export default function HomePage() {
           )}
         </div>
 
-        <div className="hidden md:grid grid-cols-3 gap-3">
-          {HERO_PHOTOS.map((src, i) => (
-            <ProductImage
-              key={src}
-              src={src}
-              alt="FitDrop fashion edit"
-              aspect="aspect-[3/4]"
-              sizes="(max-width: 1024px) 16vw, 200px"
-              priority={i === 0}
-              className={`rounded-2xl border border-[#2B2B2E] ${i === 1 ? "translate-y-6" : ""}`}
-            />
-          ))}
-        </div>
       </section>
 
-      {/* How it works — 3 steps */}
-      <section className="px-4 sm:px-8 max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-[#141416] border border-[#2B2B2E] rounded-2xl p-4 sm:p-5">
-          {STEPS.map((step, i) => (
-            <div key={step.title} className="flex items-start gap-3 p-2">
-              <div className="w-10 h-10 rounded-full bg-[#7EC8B8]/10 text-[#7EC8B8] flex items-center justify-center shrink-0">
-                <step.icon className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-[#E8E8EA]">
-                  <span className="text-[#7EC8B8] mr-1">{i + 1}.</span>{step.title}
-                </p>
-                <p className="text-xs text-[#8a8a8e] mt-0.5 leading-relaxed">{step.text}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Benefits row */}
-        <div className="flex flex-wrap justify-center gap-x-8 gap-y-2 py-5 text-sm text-[#b5b5b8]">
-          {BENEFITS.map(b => (
-            <span key={b.text} className="flex items-center gap-2">
-              <b.icon className="w-4 h-4 text-[#7EC8B8]" />{b.text}
-            </span>
-          ))}
-          <Link href="/how-it-works" className="text-[#7EC8B8] hover:underline">How it works →</Link>
-        </div>
-      </section>
 
       {/* Stores */}
       <section id="stores" ref={storesRef} className="px-4 sm:px-8 pt-4 max-w-7xl mx-auto scroll-mt-24">
