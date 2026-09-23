@@ -14,18 +14,20 @@ export type StoreConfig = {
   shopifyDomain?: string
   /** Pickup address used for driver assignment. Made up for demo/test stores. */
   pickupAddress?: string
+  /** Map coordinates of the pickup address (approximate for demo stores). */
+  pickupLocation?: { lat: number; lng: number }
 }
 
 export const STORE_REGISTRY: StoreConfig[] = [
-  { slug: "zara", name: "Zara", shopifyDomain: "zara-fitdrop.myshopify.com", pickupAddress: "503 5th Ave, New York, NY 10017" },
-  { slug: "uniqlo", name: "Uniqlo", shopifyDomain: "uniqlo-fitdrop.myshopify.com", pickupAddress: "546 Broadway, New York, NY 10012" },
-  { slug: "hm", name: "H&M", shopifyDomain: "hm-fitdrop.myshopify.com", pickupAddress: "435 7th Ave, New York, NY 10001" },
-  { slug: "nike", name: "Nike", shopifyDomain: "nike-fitdrop.myshopify.com", pickupAddress: "650 5th Ave, New York, NY 10019" },
-  { slug: "cos", name: "COS", shopifyDomain: "cos-fitdrop.myshopify.com", pickupAddress: "129 Prince St, New York, NY 10012" },
-  { slug: "mango", name: "Mango", shopifyDomain: "mango-fitdrop.myshopify.com", pickupAddress: "1 Herald Sq, New York, NY 10001" },
+  { slug: "zara", name: "Zara", shopifyDomain: "zara-fitdrop.myshopify.com", pickupAddress: "503 5th Ave, New York, NY 10017", pickupLocation: { lat: 40.7536, lng: -73.9803 } },
+  { slug: "uniqlo", name: "Uniqlo", shopifyDomain: "uniqlo-fitdrop.myshopify.com", pickupAddress: "546 Broadway, New York, NY 10012", pickupLocation: { lat: 40.7236, lng: -73.9983 } },
+  { slug: "hm", name: "H&M", shopifyDomain: "hm-fitdrop.myshopify.com", pickupAddress: "435 7th Ave, New York, NY 10001", pickupLocation: { lat: 40.751, lng: -73.9905 } },
+  { slug: "nike", name: "Nike", shopifyDomain: "nike-fitdrop.myshopify.com", pickupAddress: "650 5th Ave, New York, NY 10019", pickupLocation: { lat: 40.76, lng: -73.9763 } },
+  { slug: "cos", name: "COS", shopifyDomain: "cos-fitdrop.myshopify.com", pickupAddress: "129 Prince St, New York, NY 10012", pickupLocation: { lat: 40.7253, lng: -73.999 } },
+  { slug: "mango", name: "Mango", shopifyDomain: "mango-fitdrop.myshopify.com", pickupAddress: "1 Herald Sq, New York, NY 10001", pickupLocation: { lat: 40.7496, lng: -73.988 } },
   // Demo store used for internal testing / showing the app to prospective brands.
   // Not connected to Shopify — its products are added directly in MongoDB.
-  { slug: "marlow", name: "Marlow", pickupAddress: "180 Orchard St, New York, NY 10002" },
+  { slug: "marlow", name: "Marlow", pickupAddress: "180 Orchard St, New York, NY 10002", pickupLocation: { lat: 40.7219, lng: -73.9885 } },
 ]
 
 export const STORE_CONFIGS: Record<string, { storeName: string; domain: string }> =
@@ -46,4 +48,8 @@ export const STORE_NAMES: Record<string, string> = Object.fromEntries(
 
 export const STORE_PICKUP_ADDRESSES: Record<string, string> = Object.fromEntries(
   STORE_REGISTRY.filter(s => s.pickupAddress).map(s => [s.slug, s.pickupAddress!])
+)
+
+export const STORE_PICKUP_LOCATIONS: Record<string, { lat: number; lng: number }> = Object.fromEntries(
+  STORE_REGISTRY.filter(s => s.pickupLocation).map(s => [s.slug, s.pickupLocation!])
 )

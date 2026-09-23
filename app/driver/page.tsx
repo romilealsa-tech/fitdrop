@@ -1,6 +1,8 @@
 "use client"
 import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
+import DeliveryMap from "../components/DeliveryMap"
+import { navigationUrl, hasMapsKey } from "@/lib/googleMaps"
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4)
@@ -16,6 +18,8 @@ type Order = {
   dropoffAddress: string
   status: string
   address: { firstName: string; lastName: string }
+  pickupLocation?: { lat: number; lng: number } | null
+  dropoffLocation?: { lat: number; lng: number } | null
 }
 
 export default function DriverPage() {
@@ -24,6 +28,8 @@ export default function DriverPage() {
   const [subscribed, setSubscribed] = useState(false)
   const [orders, setOrders] = useState<Order[]>([])
   const [error, setError] = useState("")
+  const [myLocation, setMyLocation] = useState<{ lat: number; lng: number } | null>(null)
+  const [locationError, setLocationError] = useState("")
 
   const savedEmail = typeof window !== "undefined" ? localStorage.getItem("fitdrop_driver_email") : null
 
@@ -49,6 +55,31 @@ export default function DriverPage() {
     const interval = setInterval(() => fetchOrders(email), 8000)
     return () => clearInterval(interval)
   }, [stage, email, fetchOrders])
+
+  // Share live location while there are active deliveries (customer tracking map).
+  // Sends at most one update every 15 seconds.
+  const hasActive = orders.length > 0
+  useEffect(() => {
+    if (stage !== "ready" || !hasActive || !("geolocation" in navigator)) return
+    let lastSent = 0
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        const point = { lat: pos.coords.latitude, lng: pos.coords.longitude }
+        setMyLocation(point)
+        setLocationError("")
+        if (Date.now() - lastSent < 15000) return
+        lastSent = Date.now()
+        fetch("/api/drivers/location", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, ...point }),
+        }).catch(() => {})
+      },
+      () => setLocationError("Turn on location so customers can follow their delivery."),
+      { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 }
+    )
+    return () => navigator.geolocation.clearWatch(watchId)
+  }, [stage, hasActive, email])
 
   async function checkDriver(em: string) {
     setStage("checking")
@@ -169,6 +200,13 @@ export default function DriverPage() {
               <p className="text-xs text-[#7EC8B8] mb-6 text-center">🔔 Notifications enabled</p>
             )}
 
+            {locationError && orders.length > 0 && (
+              <p className="text-xs text-red-400 mb-4 text-center">{locationError}</p>
+            )}
+            {!locationError && myLocation && orders.length > 0 && (
+              <p className="text-xs text-[#6b6b6b] mb-4 text-center">📡 Sharing your location with the customer</p>
+            )}
+
             {orders.length === 0 && (
               <p className="text-center text-[#6b6b6b] text-sm">No deliveries assigned right now.</p>
             )}
@@ -190,6 +228,25 @@ export default function DriverPage() {
                       {order.address.firstName} {order.address.lastName}
                     </p>
                   </div>
+                  {hasMapsKey() && (order.pickupLocation || order.dropoffLocation) && (
+                    <DeliveryMap
+                      pickup={order.pickupLocation}
+                      dropoff={order.dropoffLocation}
+                      driver={myLocation}
+                      pickupLabel="Pickup"
+                      className="h-48 mb-3"
+                    />
+                  )}
+                  <a
+                    href={order.status === "assigned"
+                      ? navigationUrl(order.pickupLocation || order.pickupAddress)
+                      : navigationUrl(order.dropoffLocation || order.dropoffAddress)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block w-full text-center bg-[#2B2B2E] text-[#E8E8EA] py-2.5 rounded-full font-semibold text-sm hover:bg-[#3a3a3e] transition mb-2"
+                  >
+                    🧭 Navigate to {order.status === "assigned" ? "store" : "customer"} in Google Maps
+                  </a>
                   {order.status === "assigned" && (
                     <button
                       onClick={() => advanceStatus(order._id, "picked_up")}

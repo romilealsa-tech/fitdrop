@@ -4,6 +4,8 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCart } from "../CartContext"
 import { deliveryFeeFor } from "../../lib/stores"
+import AddressAutocomplete from "../components/AddressAutocomplete"
+import { isManhattanZip, type LatLng } from "../../lib/googleMaps"
 import { loadStripe } from "@stripe/stripe-js"
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js"
 
@@ -75,6 +77,8 @@ export default function CheckoutPage() {
     firstName: "", lastName: "", email: "", phone: "",
     street: "", apt: "", city: "New York", state: "NY", zip: "",
   })
+  // Map coordinates from Google Places (null when typed by hand)
+  const [location, setLocation] = useState<LatLng | null>(null)
 
   const [billingSameAsDelivery, setBillingSameAsDelivery] = useState(true)
   const [billing, setBilling] = useState({
@@ -96,6 +100,7 @@ export default function CheckoutPage() {
     if (!address.phone) e.phone = "Required"
     if (!address.street) e.street = "Required"
     if (!address.zip || address.zip.length < 5) e.zip = "Valid ZIP required"
+    else if (!isManhattanZip(address.zip)) e.zip = "We only deliver in Manhattan for now"
     if (!billingSameAsDelivery) {
       if (!billing.firstName) e.billingFirstName = "Required"
       if (!billing.lastName) e.billingLastName = "Required"
@@ -131,23 +136,27 @@ export default function CheckoutPage() {
       city: address.city, state: address.state, zip: address.zip,
     } : billing
 
+    // Persist the order server-side so it can be assigned to a driver.
+    let trackingToken: string | null = null
+    try {
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: cart, total: orderTotal.toFixed(2), address: { ...address, location } }),
+      })
+      const data = await res.json().catch(() => ({}))
+      trackingToken = data.trackingToken || null
+    } catch (err) {
+      console.error("Failed to save order for driver assignment:", err)
+    }
+
     localStorage.setItem("fitdrop_order", JSON.stringify({
       items: cart,
       total: orderTotal.toFixed(2),
       address,
       billing: effectiveBilling,
+      trackingToken,
     }))
-
-    // Persist the order server-side so it can be assigned to a driver.
-    try {
-      await fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: cart, total: orderTotal.toFixed(2), address }),
-      })
-    } catch (err) {
-      console.error("Failed to save order for driver assignment:", err)
-    }
 
     router.push("/order")
   }
@@ -216,8 +225,16 @@ export default function CheckoutPage() {
                 </div>
               </div>
               <div className="mb-4">
-                <input className={inputClass("street")} placeholder="Street address" value={address.street}
-                  onChange={e => setAddress({ ...address, street: e.target.value })} />
+                <AddressAutocomplete
+                  className={inputClass("street")}
+                  value={address.street}
+                  onChange={street => { setAddress(a => ({ ...a, street })); setLocation(null) }}
+                  onResolved={r => {
+                    setAddress(a => ({ ...a, street: r.street, city: r.city, state: r.state, zip: r.zip }))
+                    setLocation(r.location)
+                    setErrors(({ street: _s, zip: _z, ...rest }) => rest)
+                  }}
+                />
                 {errors.street && <p className="text-red-400 text-xs mt-1">{errors.street}</p>}
               </div>
               <div className="grid grid-cols-3 gap-4 mb-8">
