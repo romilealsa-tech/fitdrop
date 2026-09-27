@@ -1,14 +1,13 @@
 // Transactional email via Resend (https://resend.com) — plain fetch, no SDK.
 // Env vars (in .env.local AND in Vercel):
 //   RESEND_API_KEY   — from resend.com → API Keys (keep secret, no NEXT_PUBLIC_)
-//   EMAIL_FROM       — optional, e.g. "FitDrop <drivers@shopfitdrop.com>" once the domain
-//                      is verified in Resend. Until then Resend's test sender is used,
-//                      which can only deliver to the email you signed up to Resend with.
+//   EMAIL_FROM       — optional override. Default sender is drivers@shopfitdrop.com
+//                      (domain verified in Resend via GoDaddy DNS).
 // If RESEND_API_KEY is missing, emails are skipped (logged) and nothing breaks.
 
 import { SITE_URL } from "./seo"
 
-const FROM = process.env.EMAIL_FROM || "FitDrop <onboarding@resend.dev>"
+const FROM = process.env.EMAIL_FROM || "FitDrop <drivers@shopfitdrop.com>"
 
 export async function sendEmail({ to, subject, html, text }: { to: string; subject: string; html: string; text: string }) {
   const key = process.env.RESEND_API_KEY
