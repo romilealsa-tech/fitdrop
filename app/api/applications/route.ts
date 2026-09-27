@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/mongodb"
 import DriverApplication from "@/models/DriverApplication"
 import { requireAdmin } from "@/lib/adminAuth"
 import { formatDriverArea, VEHICLE_TYPES } from "@/lib/driverAreas"
+import { sendEmail, driverApprovedEmail, driverRejectedEmail } from "@/lib/email"
 
 // Public: submit a driver application.
 export async function POST(req: NextRequest) {
@@ -54,8 +55,21 @@ export async function PUT(req: NextRequest) {
     }
     await connectDB()
     const { id, status } = await req.json()
+    const before = await DriverApplication.findById(id)
+    if (!before) return NextResponse.json({ error: "Not found" }, { status: 404 })
+
     const application = await DriverApplication.findByIdAndUpdate(id, { status }, { new: true })
-    return NextResponse.json({ application })
+
+    // Email the driver when they're approved or rejected — once per decision,
+    // so flipping the dropdown back and forth doesn't spam them.
+    let email: { sent: boolean; reason?: string } | null = null
+    if ((status === "approved" || status === "rejected") && before.notifiedStatus !== status) {
+      const msg = status === "approved" ? driverApprovedEmail(before.name) : driverRejectedEmail(before.name)
+      email = await sendEmail({ to: before.email, ...msg })
+      if (email.sent) await DriverApplication.findByIdAndUpdate(id, { notifiedStatus: status })
+    }
+
+    return NextResponse.json({ application, email })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }

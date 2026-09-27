@@ -53,13 +53,20 @@ export default function AdminApplications() {
   }
 
   const updateStatus = async (app: Application, status: string) => {
-    await fetch("/api/applications", {
+    const res = await fetch("/api/applications", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: app._id, status }),
     })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      showToast(`Couldn't update ${app.name}: ${data.error || res.status}`)
+      return
+    }
     setApplications(prev => prev.map(a => a._id === app._id ? { ...a, status } : a))
-    showToast(`${app.name} marked as ${status}`)
+    const note = data.email?.sent ? " · email sent ✉️"
+      : data.email ? " · email NOT sent" : ""
+    showToast(`${app.name} marked as ${status}${note}`)
   }
 
   const handleLogout = () => {
