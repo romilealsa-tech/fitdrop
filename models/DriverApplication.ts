@@ -4,8 +4,8 @@ const DriverApplicationSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true },
   phone: { type: String, required: true },
-  city: { type: String, default: "" },
-  vehicleType: { type: String, default: "" }, // "Bike", "Car", "Scooter", "On foot"
+  city: { type: String, default: "" }, // "Neighborhood, Borough, State" e.g. "SoHo, Manhattan, New York"
+  vehicleType: { type: String, default: "" }, // "Bike" | "Motorcycle" | "Car" (older applications may say Scooter / On foot)
   availability: { type: String, default: "" },
   message: { type: String, default: "" },
   status: { type: String, default: "pending" }, // pending | reviewed | approved | rejected

@@ -1,20 +1,27 @@
 "use client"
 import { useState } from "react"
 import Link from "next/link"
+import { DRIVER_AREAS, DRIVER_STATES, VEHICLE_TYPES } from "@/lib/driverAreas"
 
 export default function DrivePage() {
   const [form, setForm] = useState({
-    name: "", email: "", phone: "", city: "", vehicleType: "", availability: "", message: "",
+    name: "", email: "", phone: "", state: "", neighborhood: "", vehicleType: "", availability: "", message: "",
   })
   const [status, setStatus] = useState<"idle" | "submitting" | "done" | "error">("idle")
   const [error, setError] = useState("")
 
   const update = (field: string, value: string) => setForm(prev => ({ ...prev, [field]: value }))
+  const selectClass = (empty: boolean) =>
+    `bg-[#0D0D0F] border border-[#2B2B2E] rounded-xl px-4 py-3 text-sm ${empty ? "text-[#6b6b6b]" : "text-[#E8E8EA]"} focus:outline-none focus:border-[#7EC8B8] transition disabled:opacity-40`
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.name || !form.email || !form.phone) {
       setError("Please fill in your name, email, and phone.")
+      return
+    }
+    if (!form.state || !form.neighborhood) {
+      setError("Please choose your state and neighborhood.")
       return
     }
     setError("")
@@ -108,22 +115,34 @@ export default function DrivePage() {
                 onChange={e => update("phone", e.target.value)}
                 className="bg-[#0D0D0F] border border-[#2B2B2E] rounded-xl px-4 py-3 text-sm text-[#E8E8EA] placeholder-[#6b6b6b] focus:outline-none focus:border-[#7EC8B8] transition"
               />
-              <input
-                placeholder="City / neighborhood"
-                value={form.city}
-                onChange={e => update("city", e.target.value)}
-                className="bg-[#0D0D0F] border border-[#2B2B2E] rounded-xl px-4 py-3 text-sm text-[#E8E8EA] placeholder-[#6b6b6b] focus:outline-none focus:border-[#7EC8B8] transition"
-              />
+              <select
+                value={form.state}
+                onChange={e => setForm(prev => ({ ...prev, state: e.target.value, neighborhood: "" }))}
+                className={selectClass(!form.state)}
+              >
+                <option value="">State</option>
+                {DRIVER_STATES.map(st => <option key={st} value={st}>{st}</option>)}
+              </select>
+              <select
+                value={form.neighborhood}
+                onChange={e => update("neighborhood", e.target.value)}
+                disabled={!form.state}
+                className={selectClass(!form.neighborhood)}
+              >
+                <option value="">{form.state ? "Neighborhood" : "Choose a state first"}</option>
+                {(DRIVER_AREAS[form.state] || []).map(group => (
+                  <optgroup key={group.label} label={group.label}>
+                    {group.neighborhoods.map(n => <option key={n} value={n}>{n}</option>)}
+                  </optgroup>
+                ))}
+              </select>
               <select
                 value={form.vehicleType}
                 onChange={e => update("vehicleType", e.target.value)}
-                className="bg-[#0D0D0F] border border-[#2B2B2E] rounded-xl px-4 py-3 text-sm text-[#E8E8EA] focus:outline-none focus:border-[#7EC8B8] transition"
+                className={selectClass(!form.vehicleType)}
               >
                 <option value="">Vehicle type</option>
-                <option value="Bike">Bike</option>
-                <option value="Scooter">Scooter</option>
-                <option value="Car">Car</option>
-                <option value="On foot">On foot</option>
+                {VEHICLE_TYPES.map(v => <option key={v} value={v}>{v}</option>)}
               </select>
               <select
                 value={form.availability}
