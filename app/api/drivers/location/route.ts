@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { connectDB } from "@/lib/mongodb"
-import DriverApplication from "@/models/DriverApplication"
+import { findApprovedDriver } from "@/lib/drivers"
 import Order from "@/models/Order"
 
 // Driver's phone reports its position while it has active deliveries.
@@ -17,8 +17,8 @@ export async function PUT(req: NextRequest) {
     }
 
     await connectDB()
-    const driver = await DriverApplication.findOne({ email: new RegExp(`^${escapeRegex(email.trim())}$`, "i") })
-    if (!driver || driver.status !== "approved") {
+    const driver = await findApprovedDriver(email)
+    if (!driver) {
       return NextResponse.json({ error: "Not an approved driver" }, { status: 403 })
     }
 
@@ -30,8 +30,4 @@ export async function PUT(req: NextRequest) {
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
-}
-
-function escapeRegex(s: string) {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
 }

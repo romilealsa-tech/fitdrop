@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { connectDB } from "@/lib/mongodb"
-import DriverApplication from "@/models/DriverApplication"
+import { findApprovedDriver } from "@/lib/drivers"
 import Order from "@/models/Order"
 
 // Public (email-identified, no login): a driver's active deliveries.
@@ -10,8 +10,8 @@ export async function GET(req: NextRequest) {
     const email = req.nextUrl.searchParams.get("email")?.trim().toLowerCase()
     if (!email) return NextResponse.json({ error: "email is required" }, { status: 400 })
 
-    const driver = await DriverApplication.findOne({ email: new RegExp(`^${email}$`, "i") })
-    if (!driver || driver.status !== "approved") {
+    const driver = await findApprovedDriver(email)
+    if (!driver) {
       return NextResponse.json({ error: "Not an approved driver" }, { status: 403 })
     }
 
@@ -35,8 +35,8 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: "orderId, email and status are required" }, { status: 400 })
     }
 
-    const driver = await DriverApplication.findOne({ email: new RegExp(`^${email.trim()}$`, "i") })
-    if (!driver) return NextResponse.json({ error: "Driver not found" }, { status: 403 })
+    const driver = await findApprovedDriver(email)
+    if (!driver) return NextResponse.json({ error: "Not an approved driver" }, { status: 403 })
 
     const order = await Order.findOne({ _id: orderId, driverId: driver._id })
     if (!order) return NextResponse.json({ error: "Order not found for this driver" }, { status: 404 })

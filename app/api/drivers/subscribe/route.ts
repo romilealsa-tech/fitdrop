@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { connectDB } from "@/lib/mongodb"
-import DriverApplication from "@/models/DriverApplication"
+import { findDriverByEmail, findApprovedDriver } from "@/lib/drivers"
 
 // Public: an approved driver checks/enables push notifications by email.
 // There's no login for drivers in this MVP — email is the only identifier.
@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
     const email = req.nextUrl.searchParams.get("email")?.trim().toLowerCase()
     if (!email) return NextResponse.json({ error: "email is required" }, { status: 400 })
 
-    const driver = await DriverApplication.findOne({ email: new RegExp(`^${email}$`, "i") })
+    const driver = await findDriverByEmail(email)
     if (!driver) return NextResponse.json({ found: false })
 
     return NextResponse.json({
@@ -32,8 +32,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "email and subscription are required" }, { status: 400 })
     }
 
-    const driver = await DriverApplication.findOne({ email: new RegExp(`^${email.trim()}$`, "i") })
-    if (!driver || driver.status !== "approved") {
+    const driver = await findApprovedDriver(email)
+    if (!driver) {
       return NextResponse.json({ error: "Not an approved driver" }, { status: 403 })
     }
 
