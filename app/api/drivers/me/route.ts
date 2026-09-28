@@ -30,7 +30,11 @@ export async function GET(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     await connectDB()
-    const { orderId, email, status } = await req.json()
+    const { orderId, email, status, lat, lng } = await req.json()
+    const hasPoint = Number.isFinite(lat) && Number.isFinite(lng)
+    if (status === "picked_up" && !hasPoint) {
+      return NextResponse.json({ error: "Location is required to mark an order as picked up" }, { status: 400 })
+    }
     if (!orderId || !email || !status) {
       return NextResponse.json({ error: "orderId, email and status are required" }, { status: 400 })
     }
@@ -42,6 +46,7 @@ export async function PUT(req: NextRequest) {
     if (!order) return NextResponse.json({ error: "Order not found for this driver" }, { status: 404 })
 
     order.status = status
+    if (hasPoint) order.driverLocation = { lat, lng, updatedAt: new Date() }
     await order.save()
 
     if (status === "delivered") {
@@ -60,9 +65,12 @@ export async function PUT(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   try {
     await connectDB()
-    const { email, available } = await req.json()
+    const { email, available, lat, lng } = await req.json()
     if (!email || typeof available !== "boolean") {
       return NextResponse.json({ error: "email and available (true/false) are required" }, { status: 400 })
+    }
+    if (available && !(Number.isFinite(lat) && Number.isFinite(lng))) {
+      return NextResponse.json({ error: "Location is required to go available" }, { status: 400 })
     }
     const driver = await findApprovedDriver(email)
     if (!driver) return NextResponse.json({ error: "Not an approved driver" }, { status: 403 })

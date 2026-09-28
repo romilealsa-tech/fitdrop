@@ -16,10 +16,35 @@ export type StoreConfig = {
   pickupAddress?: string
   /** Map coordinates of the pickup address (approximate for demo stores). */
   pickupLocation?: { lat: number; lng: number }
+  /**
+   * Physical stores a driver can pick up from. Orders go to the NEAREST location
+   * to the customer that stocks every item in the order (see lib/pickup.ts).
+   * Stores without this list use pickupAddress/pickupLocation as their only location.
+   */
+  locations?: StoreLocation[]
+}
+
+export type StoreLocation = {
+  /** Stable id, e.g. "zara-hudson-yards". Product.locations references these. */
+  id: string
+  name: string
+  address: string
+  lat: number
+  lng: number
 }
 
 export const STORE_REGISTRY: StoreConfig[] = [
-  { slug: "zara", name: "Zara", shopifyDomain: "zara-fitdrop.myshopify.com", pickupAddress: "503 5th Ave, New York, NY 10017", pickupLocation: { lat: 40.7536, lng: -73.9803 } },
+  {
+    slug: "zara", name: "Zara", shopifyDomain: "zara-fitdrop.myshopify.com",
+    pickupAddress: "503 5th Ave, New York, NY 10017", pickupLocation: { lat: 40.7536, lng: -73.9803 },
+    locations: [
+      { id: "zara-fifth-ave", name: "Zara Fifth Avenue", address: "503 5th Ave, New York, NY 10017", lat: 40.7536, lng: -73.9803 },
+      { id: "zara-hudson-yards", name: "Zara Hudson Yards", address: "20 Hudson Yards (Level 3), New York, NY 10001", lat: 40.7538, lng: -74.002 },
+      { id: "zara-34th-st", name: "Zara 34th Street", address: "39 W 34th St, New York, NY 10001", lat: 40.7494, lng: -73.9859 },
+      { id: "zara-soho", name: "Zara SoHo", address: "503 Broadway, New York, NY 10012", lat: 40.7222, lng: -73.9995 },
+      { id: "zara-fidi", name: "Zara Financial District", address: "222 Broadway, New York, NY 10038", lat: 40.7109, lng: -74.0089 },
+    ],
+  },
   { slug: "uniqlo", name: "Uniqlo", shopifyDomain: "uniqlo-fitdrop.myshopify.com", pickupAddress: "546 Broadway, New York, NY 10012", pickupLocation: { lat: 40.7236, lng: -73.9983 } },
   { slug: "hm", name: "H&M", shopifyDomain: "hm-fitdrop.myshopify.com", pickupAddress: "435 7th Ave, New York, NY 10001", pickupLocation: { lat: 40.751, lng: -73.9905 } },
   { slug: "nike", name: "Nike", shopifyDomain: "nike-fitdrop.myshopify.com", pickupAddress: "650 5th Ave, New York, NY 10019", pickupLocation: { lat: 40.76, lng: -73.9763 } },
@@ -53,3 +78,14 @@ export const STORE_PICKUP_ADDRESSES: Record<string, string> = Object.fromEntries
 export const STORE_PICKUP_LOCATIONS: Record<string, { lat: number; lng: number }> = Object.fromEntries(
   STORE_REGISTRY.filter(s => s.pickupLocation).map(s => [s.slug, s.pickupLocation!])
 )
+
+/** All pickup locations for a store (a single one for stores without a `locations` list). */
+export function getStoreLocations(slug: string): StoreLocation[] {
+  const store = STORE_REGISTRY.find(s => s.slug === slug)
+  if (!store) return []
+  if (store.locations?.length) return store.locations
+  if (store.pickupAddress && store.pickupLocation) {
+    return [{ id: `${slug}-main`, name: store.name, address: store.pickupAddress, ...store.pickupLocation }]
+  }
+  return []
+}

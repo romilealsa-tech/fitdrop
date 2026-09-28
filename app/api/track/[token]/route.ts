@@ -23,7 +23,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tok
     return NextResponse.json(
       {
         status: order.status,
-        storeName: STORE_NAMES[order.store] || order.store,
+        storeName: order.pickupName || STORE_NAMES[order.store] || order.store,
         itemCount: (order.items || []).reduce((n: number, i: any) => n + (i.qty || 1), 0),
         dropoffAddress: order.dropoffAddress,
         pickupLocation: order.pickupLocation || null,

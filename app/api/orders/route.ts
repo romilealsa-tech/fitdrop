@@ -6,6 +6,7 @@ import { sendPushToDriver } from "@/lib/webpush"
 import { randomBytes } from "crypto"
 import { STORE_PICKUP_ADDRESSES, STORE_PICKUP_LOCATIONS, STORE_NAMES } from "@/lib/storeConfig"
 import { sendEmail, newDeliveryEmail } from "@/lib/email"
+import { choosePickupLocation } from "@/lib/pickup"
 
 // Public: called right after a successful Stripe payment to persist the
 // order and auto-assign it to the first available approved driver.
@@ -19,22 +20,27 @@ export async function POST(req: NextRequest) {
     }
 
     const storeSlug = items[0]?.slug || ""
-    const pickupAddress = STORE_PICKUP_ADDRESSES[storeSlug] || "Pickup address not configured"
     const dropoffAddress = [address.street, address.apt, address.city, address.state, address.zip]
       .filter(Boolean).join(", ")
 
-    // Coordinates for the delivery map (dropoff comes from Places autocomplete, when available)
-    const pickupLocation = STORE_PICKUP_LOCATIONS[storeSlug] || null
+    // Customer coordinates come from Places autocomplete at checkout (null if typed by hand)
     const loc = address.location
     const dropoffLocation =
       loc && Number.isFinite(loc.lat) && Number.isFinite(loc.lng) ? { lat: Number(loc.lat), lng: Number(loc.lng) } : null
+
+    // Pickup from the NEAREST store location that has every item in stock
+    const pickup = await choosePickupLocation(storeSlug, items, dropoffLocation)
+    const pickupAddress = pickup?.address || STORE_PICKUP_ADDRESSES[storeSlug] || "Pickup address not configured"
+    const pickupLocation = pickup ? { lat: pickup.lat, lng: pickup.lng } : STORE_PICKUP_LOCATIONS[storeSlug] || null
+    const pickupLocationId = pickup?.id || ""
+    const pickupName = pickup?.name || STORE_NAMES[storeSlug] || storeSlug
     const trackingToken = randomBytes(16).toString("hex")
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { location: _omit, ...addressFields } = address
     const order = await Order.create({
       items, total, address: addressFields, store: storeSlug, pickupAddress, dropoffAddress,
-      pickupLocation, dropoffLocation, trackingToken,
+      pickupLocation, pickupLocationId, pickupName, dropoffLocation, trackingToken,
     })
 
     // Auto-assign to the first approved & available driver.
@@ -62,7 +68,7 @@ export async function POST(req: NextRequest) {
         ...newDeliveryEmail({
           driverName: driver.name,
           driverEmail: driver.email,
-          storeName: STORE_NAMES[storeSlug] || storeSlug,
+          storeName: pickupName,
           pickupAddress,
           dropoffAddress,
           itemCount,

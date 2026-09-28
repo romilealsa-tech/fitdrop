@@ -15,12 +15,15 @@ type Order = {
   _id: string
   items: { name: string; qty: number }[]
   pickupAddress: string
+  pickupName?: string
   dropoffAddress: string
   status: string
   address: { firstName: string; lastName: string }
   pickupLocation?: { lat: number; lng: number } | null
   dropoffLocation?: { lat: number; lng: number } | null
 }
+
+const LOCATION_REQUIRED = 'Location is required. Allow location for shopfitdrop.com — on iPhone: tap “aA” in the address bar → Website Settings → Location → Allow (or Settings → Privacy → Location Services → Safari Websites → While Using). Then try again.'
 
 export default function DriverPage() {
   const [email, setEmail] = useState("")
@@ -80,7 +83,7 @@ export default function DriverPage() {
           body: JSON.stringify({ email, ...point }),
         }).catch(() => {})
       },
-      () => setLocationError("Turn on location so customers can follow their delivery."),
+      () => setLocationError("Location is off — turn it back on so the customer can follow the delivery."),
       { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 }
     )
     return () => navigator.geolocation.clearWatch(watchId)
@@ -111,10 +114,17 @@ export default function DriverPage() {
     setSavingAvailable(true)
     setError("")
     try {
+      // Going available requires location turned on
+      let point: { lat: number; lng: number } | null = null
+      if (next) {
+        point = await getLocation()
+        if (!point) { setError(LOCATION_REQUIRED); return }
+        setMyLocation(point)
+      }
       const res = await fetch("/api/drivers/me", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, available: next }),
+        body: JSON.stringify({ email, available: next, ...(point || {}) }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Could not update")
@@ -164,12 +174,36 @@ export default function DriverPage() {
     }
   }
 
+  // Current GPS position, or null if the driver denied / has location off.
+  function getLocation(): Promise<{ lat: number; lng: number } | null> {
+    return new Promise(resolve => {
+      if (!("geolocation" in navigator)) return resolve(null)
+      navigator.geolocation.getCurrentPosition(
+        pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => resolve(null),
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
+      )
+    })
+  }
+
   async function advanceStatus(orderId: string, status: string) {
-    await fetch("/api/drivers/me", {
+    setError("")
+    // Picking up requires location so the customer can follow the delivery
+    let point: { lat: number; lng: number } | null = null
+    if (status === "picked_up") {
+      point = await getLocation()
+      if (!point) { setError(LOCATION_REQUIRED); return }
+      setMyLocation(point)
+    }
+    const res = await fetch("/api/drivers/me", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ orderId, email, status }),
+      body: JSON.stringify({ orderId, email, status, ...(point || {}) }),
     })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      setError(data.error || "Could not update the delivery. Try again.")
+    }
     fetchOrders(email)
   }
 
@@ -270,6 +304,7 @@ export default function DriverPage() {
                   </p>
                   <div className="mb-3">
                     <p className="text-xs text-[#6b6b6b] mb-1">📍 Pickup</p>
+                    {order.pickupName && <p className="text-sm font-semibold">{order.pickupName}</p>}
                     <p className="text-sm">{order.pickupAddress}</p>
                   </div>
                   <div className="mb-4">

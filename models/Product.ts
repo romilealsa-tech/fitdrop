@@ -12,6 +12,9 @@ const ProductSchema = new mongoose.Schema({
   sizes: { type: [String], default: [] },
   colors: { type: [String], default: [] },
   images: { type: [String], default: [] },
+  // Store location ids (lib/storeConfig.ts) that have this item in stock.
+  // Empty = available at every location of the store.
+  locations: { type: [String], default: [] },
 }, { timestamps: true })
 
 export default mongoose.models.Product || mongoose.model("Product", ProductSchema)

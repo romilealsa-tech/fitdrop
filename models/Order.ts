@@ -13,6 +13,8 @@ const OrderSchema = new mongoose.Schema({
   },
   store: { type: String, default: "" }, // slug of the pickup store (MVP: first item's store)
   pickupAddress: { type: String, default: "" },
+  pickupLocationId: { type: String, default: "" }, // e.g. "zara-hudson-yards" (nearest location with stock)
+  pickupName: { type: String, default: "" },       // e.g. "Zara Hudson Yards"
   dropoffAddress: { type: String, default: "" },
   // Map coordinates (Google Maps). dropoffLocation comes from Places autocomplete at checkout.
   pickupLocation: { type: PointSchema, default: null },
