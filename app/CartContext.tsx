@@ -20,10 +20,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setCart((prev) => prev.filter((i) => !(i.id === id && i.store === store)))
   }
 
+  // Empty the cart after a successful payment
+  const clearCart = () => setCart([])
+
   const total = cart.reduce((sum, i) => sum + parseFloat(i.price.replace("$", "")) * i.qty, 0)
 
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, total }}>
+    <CartContext.Provider value={{ cart, addToCart, removeFromCart, clearCart, total }}>
       {children}
     </CartContext.Provider>
   )

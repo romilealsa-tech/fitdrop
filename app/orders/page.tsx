@@ -3,27 +3,14 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import ProductImage from "../components/ProductImage"
 import { getProductImage } from "../../lib/images"
+import { loadOrders } from "../../lib/orderHistory"
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<any[]>([])
 
   useEffect(() => {
-    const current = localStorage.getItem("fitdrop_order")
-    if (current) {
-      const parsed = JSON.parse(current)
-      if (!parsed.date) parsed.date = new Date().toISOString()
-      const existing = localStorage.getItem("fitdrop_orders")
-      const allOrders = existing ? JSON.parse(existing) : []
-      const alreadySaved = allOrders.find((o: any) => o.total === parsed.total && o.date === parsed.date)
-      if (!alreadySaved) {
-        allOrders.unshift(parsed)
-        localStorage.setItem("fitdrop_orders", JSON.stringify(allOrders))
-      }
-      setOrders(allOrders)
-    } else {
-      const existing = localStorage.getItem("fitdrop_orders")
-      if (existing) setOrders(JSON.parse(existing))
-    }
+    // Read-only: orders are saved once at checkout (lib/orderHistory.ts)
+    setOrders(loadOrders())
   }, [])
 
   const formatDate = (dateStr: string) => {

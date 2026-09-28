@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCart } from "../CartContext"
 import { deliveryFeeFor } from "../../lib/stores"
+import { saveOrder } from "../../lib/orderHistory"
 import AddressAutocomplete from "../components/AddressAutocomplete"
 import { isManhattanZip, type LatLng } from "../../lib/googleMaps"
 import { loadStripe } from "@stripe/stripe-js"
@@ -67,7 +68,7 @@ function CheckoutForm({ clientSecret, onSuccess }: { clientSecret: string; onSuc
 }
 
 export default function CheckoutPage() {
-  const { cart, total } = useCart()
+  const { cart, total, clearCart } = useCart()
   const router = useRouter()
   const [step, setStep] = useState<Step>("address")
   const [clientSecret, setClientSecret] = useState("")
@@ -138,6 +139,7 @@ export default function CheckoutPage() {
 
     // Persist the order server-side so it can be assigned to a driver.
     let trackingToken: string | null = null
+    let orderId: string | null = null
     try {
       const res = await fetch("/api/orders", {
         method: "POST",
@@ -146,17 +148,21 @@ export default function CheckoutPage() {
       })
       const data = await res.json().catch(() => ({}))
       trackingToken = data.trackingToken || null
+      orderId = data.orderId ? String(data.orderId) : null
     } catch (err) {
       console.error("Failed to save order for driver assignment:", err)
     }
 
-    localStorage.setItem("fitdrop_order", JSON.stringify({
+    // Save once to the customer's order history, then empty the cart (it's paid)
+    saveOrder({
+      id: orderId,
       items: cart,
       total: orderTotal.toFixed(2),
       address,
       billing: effectiveBilling,
       trackingToken,
-    }))
+    })
+    clearCart()
 
     router.push("/order")
   }
