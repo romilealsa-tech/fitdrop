@@ -1,6 +1,6 @@
 // FitDrop brand icon, rendered as PNG at any size (used by app/icon.tsx and app/apple-icon.tsx).
 // Black background, "FitDrop" in white, "Fashion. Delivered." in aqua underneath.
-// At tab size (≤ 48px) text that small is unreadable, so it becomes a bold white "F"
+// At tab size (≤ 48px) text that small is unreadable, so it becomes a bold white "FD"
 // with the aqua accent line — the same colors, recognizable in a browser tab.
 
 const BLACK = "#0D0D0F"
@@ -11,8 +11,8 @@ export function BrandIcon({ size }: { size: number }) {
   if (size <= 48) {
     return (
       <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: BLACK, borderRadius: size * 0.2 }}>
-        <div style={{ display: "flex", color: WHITE, fontSize: size * 0.72, fontWeight: 700, lineHeight: 1 }}>F</div>
-        <div style={{ display: "flex", width: size * 0.5, height: Math.max(2, size * 0.08), background: AQUA, borderRadius: 2, marginTop: size * 0.02 }} />
+        <div style={{ display: "flex", color: WHITE, fontSize: size * 0.56, fontWeight: 700, letterSpacing: -size * 0.03, lineHeight: 1 }}>FD</div>
+        <div style={{ display: "flex", width: size * 0.62, height: Math.max(2, size * 0.08), background: AQUA, borderRadius: 2, marginTop: size * 0.04 }} />
       </div>
     )
   }
