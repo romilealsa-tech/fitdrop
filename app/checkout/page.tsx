@@ -89,9 +89,16 @@ export default function CheckoutPage() {
   const [location, setLocation] = useState<LatLng | null>(null)
 
   // Which store the order will come from + estimated delivery time (max 1.5h)
-  type Quote =
+  type StoreQuote =
     | { ok: true; location: { name: string; address: string }; distanceMiles: number | null; etaMinutes: number | null; overLimit: boolean; nearest: { name: string; missingItems: string[] } | null }
     | { ok: false; reason: string; message: string }
+  type Quote = {
+    ok: boolean
+    message?: string
+    pickups: { store: string; quote: StoreQuote }[]
+    etaMinutes: number | null
+    overLimit: boolean
+  }
   const [quote, setQuote] = useState<Quote | null>(null)
   const [quoteLoading, setQuoteLoading] = useState(false)
   const cartKey = cart.map((i: any) => `${i._id || i.id}x${i.qty}`).join(",")
@@ -105,7 +112,7 @@ export default function CheckoutPage() {
       body: JSON.stringify({ items: cart, location }),
     })
       .then(r => r.json())
-      .then(q => { if (!cancelled) setQuote(q?.ok !== undefined ? q : null) })
+      .then(q => { if (!cancelled) setQuote(Array.isArray(q?.pickups) ? q : null) })
       .catch(() => { if (!cancelled) setQuote(null) })
       .finally(() => { if (!cancelled) setQuoteLoading(false) })
     return () => { cancelled = true }
@@ -177,6 +184,7 @@ export default function CheckoutPage() {
     // Persist the order server-side so it can be assigned to a driver.
     let trackingToken: string | null = null
     let orderId: string | null = null
+    let pickups: { trackingToken: string; storeName: string }[] = []
     try {
       const res = await fetch("/api/orders", {
         method: "POST",
@@ -186,6 +194,7 @@ export default function CheckoutPage() {
       const data = await res.json().catch(() => ({}))
       trackingToken = data.trackingToken || null
       orderId = data.orderId ? String(data.orderId) : null
+      pickups = Array.isArray(data.pickups) ? data.pickups : []
     } catch (err) {
       console.error("Failed to save order for driver assignment:", err)
     }
@@ -199,6 +208,7 @@ export default function CheckoutPage() {
       address,
       billing: effectiveBilling,
       trackingToken,
+      pickups: pickups.map(p => ({ trackingToken: p.trackingToken, storeName: p.storeName })),
     })
     clearCart()
 
@@ -300,33 +310,57 @@ export default function CheckoutPage() {
                   quote && !quote.ok ? "border-red-500/40 bg-red-500/5" : "border-[#2B2B2E] bg-[#1C1C1E]"
                 }`}>
                   {quoteLoading && !quote && <p className="text-[#6b6b6b]">Finding the closest store…</p>}
-                  {quote && quote.ok && (
+                  {quote && (
                     <>
-                      <p className="text-[#E8E8EA]">
-                        🛍️ Coming from <strong>{quote.location.name}</strong>
-                        {quote.distanceMiles !== null && <span className="text-[#8a8a8e]"> · {quote.distanceMiles} mi away</span>}
-                      </p>
-                      <p className="text-[#8a8a8e] text-xs mt-1">{quote.location.address}</p>
-                      {quote.etaMinutes !== null && !quote.overLimit && (
-                        <p className="text-[#7EC8B8] font-semibold mt-2">⚡ Arrives in about {formatMinutes(quote.etaMinutes)}</p>
-                      )}
-                      {quote.etaMinutes !== null && quote.overLimit && (
-                        <p className="text-amber-300 font-semibold mt-2">
-                          ⏱ This one takes longer: about {formatMinutes(quote.etaMinutes)}, because we&apos;re bringing it from {quote.location.name}
-                          {quote.nearest ? " — the closest store that has everything you picked." : ", the closest store to your address."}
+                      {quote.pickups.length > 1 && (
+                        <p className="text-[#E8E8EA] font-semibold mb-3">
+                          🛍️ Your order comes from {quote.pickups.length} stores — each one is picked up separately
                         </p>
                       )}
-                      {quote.nearest && (
-                        <p className="text-[#b5b5b8] text-xs mt-2">
-                          Your closest store, {quote.nearest.name}, doesn&apos;t have{" "}
-                          {quote.nearest.missingItems.length ? quote.nearest.missingItems.join(", ") : "everything in your cart"}
-                          {" "}— so we&apos;ll bring it from {quote.location.name}.
+                      <div className="space-y-3">
+                        {quote.pickups.map(({ store, quote: q }) => (
+                          <div key={store} className={quote.pickups.length > 1 ? "border-l-2 border-[#2B2B2E] pl-3" : ""}>
+                            {q.ok ? (
+                              <>
+                                <p className="text-[#E8E8EA]">
+                                  {quote.pickups.length === 1 && "🛍️ "}Coming from <strong>{q.location.name}</strong>
+                                  {q.distanceMiles !== null && <span className="text-[#8a8a8e]"> · {q.distanceMiles} mi away</span>}
+                                  {q.etaMinutes !== null && quote.pickups.length > 1 && (
+                                    <span className={q.overLimit ? "text-amber-300" : "text-[#7EC8B8]"}> · ~{formatMinutes(q.etaMinutes)}</span>
+                                  )}
+                                </p>
+                                <p className="text-[#8a8a8e] text-xs mt-0.5">{q.location.address}</p>
+                                {q.nearest && (
+                                  <p className="text-[#b5b5b8] text-xs mt-1">
+                                    Your closest {store}, {q.nearest.name}, doesn&apos;t have{" "}
+                                    {q.nearest.missingItems.length ? q.nearest.missingItems.join(", ") : "everything you picked"}
+                                    {" "}— so we&apos;ll bring it from {q.location.name}.
+                                  </p>
+                                )}
+                              </>
+                            ) : (
+                              <p className="text-red-400">{q.message}</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      {quote.ok && quote.etaMinutes !== null && !quote.overLimit && (
+                        <p className="text-[#7EC8B8] font-semibold mt-3">
+                          ⚡ {quote.pickups.length > 1 ? "Everything arrives" : "Arrives"} in about {formatMinutes(quote.etaMinutes)}
                         </p>
                       )}
+                      {quote.ok && quote.etaMinutes !== null && quote.overLimit && (() => {
+                        const slowest = quote.pickups
+                          .filter(p => p.quote.ok)
+                          .sort((a, b) => ((b.quote as any).etaMinutes ?? 0) - ((a.quote as any).etaMinutes ?? 0))[0]
+                        const from = slowest && slowest.quote.ok ? slowest.quote.location.name : "a farther store"
+                        return (
+                          <p className="text-amber-300 font-semibold mt-3">
+                            ⏱ This one takes longer: about {formatMinutes(quote.etaMinutes!)}, because we&apos;re bringing it from {from}.
+                          </p>
+                        )
+                      })()}
                     </>
-                  )}
-                  {quote && !quote.ok && (
-                    <p className="text-red-400">{quote.message}</p>
                   )}
                 </div>
               )}

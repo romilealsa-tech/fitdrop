@@ -4,13 +4,23 @@ import Order from "@/models/Order"
 import DriverApplication from "@/models/DriverApplication"
 import { sendPushToDriver } from "@/lib/webpush"
 import { randomBytes } from "crypto"
-import { STORE_PICKUP_ADDRESSES, STORE_PICKUP_LOCATIONS, STORE_NAMES } from "@/lib/storeConfig"
+import { STORE_PICKUP_ADDRESSES, STORE_PICKUP_LOCATIONS, STORE_NAMES, getStoreLocations } from "@/lib/storeConfig"
 import { sendEmail, newDeliveryEmail } from "@/lib/email"
 import { quotePickup } from "@/lib/pickup"
-import { getStoreLocations } from "@/lib/storeConfig"
 
-// Public: called right after a successful Stripe payment to persist the
-// order and auto-assign it to the first available approved driver.
+/** Split a cart into one group per store (Zara + Uniqlo → two pickups). */
+function groupByStore(items: any[]) {
+  const groups = new Map<string, any[]>()
+  for (const item of items) {
+    const slug = String(item.slug || "").toLowerCase()
+    groups.set(slug, [...(groups.get(slug) || []), item])
+  }
+  return [...groups.entries()].map(([slug, items]) => ({ slug, items }))
+}
+
+// Public: called right after a successful Stripe payment. Creates ONE pickup order per
+// store in the cart (each with its own nearest store, ETA and tracking link) and
+// auto-assigns them to the first available approved driver.
 export async function POST(req: NextRequest) {
   try {
     await connectDB()
@@ -20,7 +30,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "items, total and address are required" }, { status: 400 })
     }
 
-    const storeSlug = items[0]?.slug || ""
+    const isPriority = priority === true
     const dropoffAddress = [address.street, address.apt, address.city, address.state, address.zip]
       .filter(Boolean).join(", ")
 
@@ -29,61 +39,75 @@ export async function POST(req: NextRequest) {
     const dropoffLocation =
       loc && Number.isFinite(loc.lat) && Number.isFinite(loc.lng) ? { lat: Number(loc.lat), lng: Number(loc.lng) } : null
 
-    // Pickup from the NEAREST store location that has every item in stock
-    // (checkout already showed this quote and blocked orders that can't arrive within 1.5h;
-    //  if something changed since, fall back to the flagship rather than lose a paid order)
-    const quote = await quotePickup(storeSlug, items, dropoffLocation)
-    const pickup = quote.ok ? quote.location : getStoreLocations(storeSlug)[0] || null
-    if (!quote.ok) console.warn(`[orders] pickup quote failed after payment (${quote.reason}) — using flagship`)
-    const pickupAddress = pickup?.address || STORE_PICKUP_ADDRESSES[storeSlug] || "Pickup address not configured"
-    const pickupLocation = pickup ? { lat: pickup.lat, lng: pickup.lng } : STORE_PICKUP_LOCATIONS[storeSlug] || null
-    const pickupLocationId = pickup?.id || ""
-    const pickupName = pickup?.name || STORE_NAMES[storeSlug] || storeSlug
-    const trackingToken = randomBytes(16).toString("hex")
-
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { location: _omit, ...addressFields } = address
-    const order = await Order.create({
-      items, total, address: addressFields, store: storeSlug, pickupAddress, dropoffAddress,
-      pickupLocation, pickupLocationId, pickupName, dropoffLocation, trackingToken,
-      priority: priority === true,
-    })
+    const groupId = randomBytes(8).toString("hex") // ties the pickups of one checkout together
+    const groups = groupByStore(items)
 
-    // Auto-assign to the first approved & available driver.
     const driver = await DriverApplication.findOne({ status: "approved", available: true })
-    let assigned = false
+    const created: { orderId: string; trackingToken: string; storeName: string }[] = []
 
-    if (driver) {
-      order.driverId = driver._id
-      order.status = "assigned"
-      await order.save()
-      assigned = true
+    for (const group of groups) {
+      // Nearest location of THIS store that has every item of this group
+      // (if something changed since checkout, fall back to the flagship rather than lose a paid order)
+      const quote = await quotePickup(group.slug, group.items, dropoffLocation)
+      const pickup = quote.ok ? quote.location : getStoreLocations(group.slug)[0] || null
+      if (!quote.ok) console.warn(`[orders] pickup quote failed after payment for ${group.slug} (${quote.reason}) — using flagship`)
 
-      if (driver.pushSubscription) {
-        await sendPushToDriver(driver.pushSubscription, {
-          title: priority === true ? "⚡ PRIORITY FitDrop delivery — do this one first" : "🛵 New FitDrop delivery",
-          body: `Pickup: ${pickupAddress}\nDrop-off: ${dropoffAddress}`,
-          url: "/driver",
+      const pickupAddress = pickup?.address || STORE_PICKUP_ADDRESSES[group.slug] || "Pickup address not configured"
+      const pickupLocation = pickup ? { lat: pickup.lat, lng: pickup.lng } : STORE_PICKUP_LOCATIONS[group.slug] || null
+      const pickupName = pickup?.name || STORE_NAMES[group.slug] || group.slug
+      const trackingToken = randomBytes(16).toString("hex")
+
+      const order = await Order.create({
+        items: group.items,
+        total, // the full amount the customer paid (shared by every pickup of this checkout)
+        groupId,
+        pickupCount: groups.length,
+        address: addressFields,
+        store: group.slug,
+        pickupAddress,
+        pickupLocationId: pickup?.id || "",
+        pickupName,
+        pickupLocation,
+        dropoffAddress,
+        dropoffLocation,
+        trackingToken,
+        priority: isPriority,
+        ...(driver ? { driverId: driver._id, status: "assigned" } : {}),
+      })
+      created.push({ orderId: String(order._id), trackingToken, storeName: pickupName })
+
+      if (driver) {
+        if (driver.pushSubscription) {
+          await sendPushToDriver(driver.pushSubscription, {
+            title: isPriority ? "⚡ PRIORITY FitDrop delivery — do this one first" : "🛵 New FitDrop delivery",
+            body: `Pickup: ${pickupName}\nDrop-off: ${dropoffAddress}`,
+            url: "/driver",
+          }).catch(() => {})
+        }
+        // Email works on every phone with no setup (iPhone web push needs a Home Screen install)
+        await sendEmail({
+          to: driver.email,
+          ...newDeliveryEmail({
+            driverName: driver.name,
+            driverEmail: driver.email,
+            storeName: groups.length > 1 ? `${pickupName} (pickup ${created.length} of ${groups.length})` : pickupName,
+            pickupAddress,
+            dropoffAddress,
+            itemCount: group.items.reduce((n: number, i: any) => n + (Number(i.qty) || 1), 0),
+            priority: isPriority,
+          }),
         })
       }
-
-      // Email works on every phone with no setup (iPhone web push needs a Home Screen install)
-      const itemCount = items.reduce((n: number, i: any) => n + (Number(i.qty) || 1), 0)
-      await sendEmail({
-        to: driver.email,
-        ...newDeliveryEmail({
-          driverName: driver.name,
-          driverEmail: driver.email,
-          storeName: pickupName,
-          pickupAddress,
-          dropoffAddress,
-          itemCount,
-          priority: priority === true,
-        }),
-      })
     }
 
-    return NextResponse.json({ orderId: order._id, assigned, trackingToken })
+    return NextResponse.json({
+      orderId: created[0]?.orderId,
+      trackingToken: created[0]?.trackingToken,
+      pickups: created, // one per store
+      assigned: !!driver,
+    })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }

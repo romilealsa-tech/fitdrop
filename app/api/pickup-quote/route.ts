@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { connectDB } from "@/lib/mongodb"
-import { quotePickup } from "@/lib/pickup"
+import { quotePickup, MAX_DELIVERY_MINUTES } from "@/lib/pickup"
+import { STORE_NAMES } from "@/lib/storeConfig"
 
-// Public: which store an order will come from and how long it will take.
-// Shown at checkout before payment; orders that can't arrive within 1.5h are blocked there.
+// Public: for each store in the cart, which location it'll be picked up from and
+// how long it will take. Shown at checkout before payment.
 export async function POST(req: NextRequest) {
   try {
     const { items, location } = await req.json()
@@ -15,9 +16,26 @@ export async function POST(req: NextRequest) {
         ? { lat: Number(location.lat), lng: Number(location.lng) }
         : null
     await connectDB()
-    const storeSlug = items[0]?.slug || ""
-    const quote = await quotePickup(storeSlug, items, dropoff)
-    return NextResponse.json(quote)
+
+    const slugs = [...new Set(items.map((i: any) => String(i.slug || "").toLowerCase()))]
+    const pickups = await Promise.all(
+      slugs.map(async slug => ({
+        store: STORE_NAMES[slug] || slug,
+        quote: await quotePickup(slug, items.filter((i: any) => String(i.slug || "").toLowerCase() === slug), dropoff),
+      }))
+    )
+
+    const blocked = pickups.find(p => !p.quote.ok)
+    const etas = pickups.map(p => (p.quote.ok ? p.quote.etaMinutes : null)).filter((m): m is number => m !== null)
+    const etaMinutes = etas.length === pickups.length && etas.length > 0 ? Math.max(...etas) : null
+
+    return NextResponse.json({
+      ok: !blocked,
+      message: blocked && !blocked.quote.ok ? blocked.quote.message : undefined,
+      pickups,
+      etaMinutes, // the whole order arrives when the slowest pickup does
+      overLimit: etaMinutes !== null && etaMinutes > MAX_DELIVERY_MINUTES,
+    })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }

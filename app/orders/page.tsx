@@ -60,7 +60,19 @@ export default function OrdersPage() {
                 </div>
                 <div className="text-right">
                   <p className="text-lg font-bold text-[#7EC8B8]">${order.total}</p>
-                  {order.trackingToken ? (
+                  {order.pickups?.length > 1 ? (
+                    <div className="flex flex-col items-end gap-1.5">
+                      {order.pickups.map((p: any) => (
+                        <Link
+                          key={p.trackingToken}
+                          href={`/track/${p.trackingToken}`}
+                          className="text-xs bg-[#7EC8B8] text-[#0D0D0F] px-3 py-1 rounded-full font-bold hover:bg-[#6ab5a5] transition inline-block"
+                        >
+                          Track {p.storeName} →
+                        </Link>
+                      ))}
+                    </div>
+                  ) : order.trackingToken ? (
                     <Link
                       href={`/track/${order.trackingToken}`}
                       className="text-xs bg-[#7EC8B8] text-[#0D0D0F] px-3 py-1 rounded-full font-bold hover:bg-[#6ab5a5] transition inline-block"

@@ -17,6 +17,7 @@ type Order = {
   pickupAddress: string
   pickupName?: string
   priority?: boolean
+  pickupCount?: number
   dropoffAddress: string
   status: string
   address: { firstName: string; lastName: string }
@@ -36,6 +37,7 @@ export default function DriverPage() {
   const [error, setError] = useState("")
   const [myLocation, setMyLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [locationError, setLocationError] = useState("")
+  const [locationRetry, setLocationRetry] = useState(0) // bump to restart live tracking
 
   // ?email=... comes from the "New delivery" / "approved" emails, so the driver lands signed in
   const savedEmail = typeof window !== "undefined"
@@ -88,7 +90,7 @@ export default function DriverPage() {
       { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 }
     )
     return () => navigator.geolocation.clearWatch(watchId)
-  }, [stage, hasActive, email])
+  }, [stage, hasActive, email, locationRetry])
 
   async function checkDriver(em: string) {
     setStage("checking")
@@ -185,6 +187,23 @@ export default function DriverPage() {
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
       )
     })
+  }
+
+  // "Turn on location" button: asks the phone again and restarts live sharing
+  async function retryLocation() {
+    const point = await getLocation()
+    if (point) {
+      setMyLocation(point)
+      setLocationError("")
+      setLocationRetry(n => n + 1)
+      fetch("/api/drivers/location", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, ...point }),
+      }).catch(() => {})
+    } else {
+      setLocationError(LOCATION_REQUIRED)
+    }
   }
 
   async function advanceStatus(orderId: string, status: string) {
@@ -287,7 +306,15 @@ export default function DriverPage() {
             )}
 
             {locationError && orders.length > 0 && (
-              <p className="text-xs text-red-400 mb-4 text-center">{locationError}</p>
+              <div className="bg-red-500/10 border border-red-500/40 rounded-2xl p-4 mb-4 text-center">
+                <p className="text-xs text-red-300 mb-3">{locationError}</p>
+                <button
+                  onClick={retryLocation}
+                  className="bg-[#7EC8B8] text-[#0D0D0F] px-5 py-2 rounded-full font-bold text-sm hover:bg-[#6ab5a5] transition"
+                >
+                  📍 Turn on location
+                </button>
+              </div>
             )}
             {!locationError && myLocation && orders.length > 0 && (
               <p className="text-xs text-[#6b6b6b] mb-4 text-center">📡 Sharing your location with the customer</p>
@@ -307,6 +334,9 @@ export default function DriverPage() {
                   )}
                   <p className="text-xs text-[#7EC8B8] uppercase tracking-widest font-bold mb-3">
                     {order.status === "assigned" ? "New delivery" : "Picked up"}
+                    {(order.pickupCount ?? 1) > 1 && (
+                      <span className="text-[#b5b5b8] normal-case tracking-normal font-semibold"> · 1 of {order.pickupCount} stores for this customer</span>
+                    )}
                   </p>
                   <div className="mb-3">
                     <p className="text-xs text-[#6b6b6b] mb-1">📍 Pickup</p>

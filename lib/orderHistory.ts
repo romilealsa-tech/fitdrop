@@ -13,6 +13,8 @@ export type StoredOrder = {
   billing?: any
   trackingToken?: string | null
   priority?: boolean
+  /** One tracking link per store when the order came from several stores */
+  pickups?: { trackingToken: string; storeName: string }[]
 }
 
 function read<T>(key: string, fallback: T): T {
