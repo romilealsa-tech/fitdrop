@@ -59,7 +59,7 @@ export async function quotePickup(storeSlug: string, items: CartItem[], dropoff:
   // Stock per location
   const ids = items.map(i => String(i._id || i.id || "")).filter(id => mongoose.isValidObjectId(id))
   const products = ids.length
-    ? ((await Product.find({ _id: { $in: ids } }, { name: 1, locations: 1 }).lean()) as { name: string; locations?: string[] }[])
+    ? ((await Product.find({ _id: { $in: ids } }, { name: 1, locations: 1 }).lean()) as unknown as { name: string; locations?: string[] }[])
     : []
   const missingAt = (loc: StoreLocation) =>
     products.filter(p => p.locations?.length && !p.locations.includes(loc.id)).map(p => p.name)
