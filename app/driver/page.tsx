@@ -104,7 +104,15 @@ export default function DriverPage() {
     setError("")
     try {
       if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-        setError("This browser doesn't support push notifications.")
+        // iPhone/iPad: Safari only allows web push once the page is installed to the Home Screen
+        const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+          (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+        const standalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as any).standalone
+        if (isIOS && !standalone) {
+          setError("On iPhone, notifications only work from the Home Screen app: tap Share (the square with the arrow ↑) → “Add to Home Screen” → Add. Then open FitDrop Driver from your Home Screen and tap Enable notifications again.")
+        } else {
+          setError("This browser doesn't support push notifications. On iPhone, update to iOS 16.4 or newer and use the Home Screen app.")
+        }
         return
       }
       const permission = await Notification.requestPermission()
