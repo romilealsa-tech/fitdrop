@@ -48,15 +48,15 @@ function layout(title: string, body: string) {
   </td></tr></table></body></html>`
 }
 
-export function driverApprovedEmail(name: string) {
+export function driverApprovedEmail(name: string, email?: string) {
   const first = esc(name.split(" ")[0] || name)
-  const link = `${SITE_URL}/driver`
+  const link = `${SITE_URL}/driver${email ? `?email=${encodeURIComponent(email)}` : ""}`
   return {
     subject: "You're approved to drive with FitDrop 🎉",
     html: layout(`Welcome to the fleet, ${first}!`, `
       <p style="margin:0 0 16px">Your application to drive with FitDrop has been <strong style="color:#7EC8B8">approved</strong>. Here's how to start getting deliveries:</p>
       <ol style="margin:0 0 20px;padding-left:20px">
-        <li style="margin-bottom:8px">Open the driver app on your phone: <a href="${link}" style="color:#7EC8B8">${link}</a></li>
+        <li style="margin-bottom:8px">Open the driver app on your phone with the button below.</li>
         <li style="margin-bottom:8px">Sign in with the <strong>same email</strong> you applied with.</li>
         <li style="margin-bottom:8px">Turn on the <strong>Available</strong> switch.</li>
         <li>Allow <strong>notifications</strong> and <strong>location</strong> so you get new orders and customers can follow their delivery.</li>
@@ -76,5 +76,33 @@ export function driverRejectedEmail(name: string) {
       <p style="margin:0 0 16px">This can depend on the areas and schedules we need right now, and it may change as FitDrop grows. You're welcome to apply again in the future.</p>
       <p style="margin:0">— The FitDrop team</p>`),
     text: `Hi ${name.split(" ")[0]}, thank you for applying to drive with FitDrop. After reviewing your application, we're not able to move forward at this time. This may change as FitDrop grows, and you're welcome to apply again in the future. — The FitDrop team`,
+  }
+}
+
+export function newDeliveryEmail(o: {
+  driverName: string
+  driverEmail: string
+  storeName: string
+  pickupAddress: string
+  dropoffAddress: string
+  itemCount: number
+}) {
+  const first = esc(o.driverName.split(" ")[0] || o.driverName)
+  // Link opens the driver app already signed in with their email
+  const link = `${SITE_URL}/driver?email=${encodeURIComponent(o.driverEmail)}`
+  const row = (label: string, value: string) =>
+    `<tr><td style="padding:6px 0;color:#6b6b6b;font-size:13px;width:90px;vertical-align:top">${label}</td><td style="padding:6px 0;color:#E8E8EA;font-size:15px">${esc(value)}</td></tr>`
+  return {
+    subject: `🛵 New delivery: ${o.storeName} → ${o.dropoffAddress.split(",")[0]}`,
+    html: layout(`New delivery for you, ${first}!`, `
+      <table cellpadding="0" cellspacing="0" style="margin:0 0 20px;width:100%">
+        ${row("Store", o.storeName)}
+        ${row("Pickup", o.pickupAddress)}
+        ${row("Drop-off", o.dropoffAddress)}
+        ${row("Items", `${o.itemCount} item${o.itemCount === 1 ? "" : "s"}`)}
+      </table>
+      <p style="margin:0 0 24px"><a href="${link}" style="display:inline-block;background:#7EC8B8;color:#0D0D0F;text-decoration:none;font-weight:700;padding:12px 24px;border-radius:999px">Open delivery</a></p>
+      <p style="margin:0;font-size:13px;color:#6b6b6b">Head to the store, then tap “Picked up” in the driver app so the customer can follow you.</p>`),
+    text: `New FitDrop delivery!\n\nStore: ${o.storeName}\nPickup: ${o.pickupAddress}\nDrop-off: ${o.dropoffAddress}\nItems: ${o.itemCount}\n\nOpen: ${link}`,
   }
 }

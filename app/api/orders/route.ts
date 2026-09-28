@@ -4,7 +4,8 @@ import Order from "@/models/Order"
 import DriverApplication from "@/models/DriverApplication"
 import { sendPushToDriver } from "@/lib/webpush"
 import { randomBytes } from "crypto"
-import { STORE_PICKUP_ADDRESSES, STORE_PICKUP_LOCATIONS } from "@/lib/storeConfig"
+import { STORE_PICKUP_ADDRESSES, STORE_PICKUP_LOCATIONS, STORE_NAMES } from "@/lib/storeConfig"
+import { sendEmail, newDeliveryEmail } from "@/lib/email"
 
 // Public: called right after a successful Stripe payment to persist the
 // order and auto-assign it to the first available approved driver.
@@ -53,6 +54,20 @@ export async function POST(req: NextRequest) {
           url: "/driver",
         })
       }
+
+      // Email works on every phone with no setup (iPhone web push needs a Home Screen install)
+      const itemCount = items.reduce((n: number, i: any) => n + (Number(i.qty) || 1), 0)
+      await sendEmail({
+        to: driver.email,
+        ...newDeliveryEmail({
+          driverName: driver.name,
+          driverEmail: driver.email,
+          storeName: STORE_NAMES[storeSlug] || storeSlug,
+          pickupAddress,
+          dropoffAddress,
+          itemCount,
+        }),
+      })
     }
 
     return NextResponse.json({ orderId: order._id, assigned, trackingToken })

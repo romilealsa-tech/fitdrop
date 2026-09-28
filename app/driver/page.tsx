@@ -31,7 +31,10 @@ export default function DriverPage() {
   const [myLocation, setMyLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [locationError, setLocationError] = useState("")
 
-  const savedEmail = typeof window !== "undefined" ? localStorage.getItem("fitdrop_driver_email") : null
+  // ?email=... comes from the "New delivery" / "approved" emails, so the driver lands signed in
+  const savedEmail = typeof window !== "undefined"
+    ? (new URLSearchParams(window.location.search).get("email") || localStorage.getItem("fitdrop_driver_email"))
+    : null
 
   useEffect(() => {
     if (savedEmail) {

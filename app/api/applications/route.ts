@@ -64,7 +64,7 @@ export async function PUT(req: NextRequest) {
     // so flipping the dropdown back and forth doesn't spam them.
     let email: { sent: boolean; reason?: string } | null = null
     if ((status === "approved" || status === "rejected") && before.notifiedStatus !== status) {
-      const msg = status === "approved" ? driverApprovedEmail(before.name) : driverRejectedEmail(before.name)
+      const msg = status === "approved" ? driverApprovedEmail(before.name, before.email) : driverRejectedEmail(before.name)
       email = await sendEmail({ to: before.email, ...msg })
       if (email.sent) await DriverApplication.findByIdAndUpdate(id, { notifiedStatus: status })
     }
