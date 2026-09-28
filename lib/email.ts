@@ -86,6 +86,7 @@ export function newDeliveryEmail(o: {
   pickupAddress: string
   dropoffAddress: string
   itemCount: number
+  priority?: boolean
 }) {
   const first = esc(o.driverName.split(" ")[0] || o.driverName)
   // Link opens the driver app already signed in with their email
@@ -93,8 +94,9 @@ export function newDeliveryEmail(o: {
   const row = (label: string, value: string) =>
     `<tr><td style="padding:6px 0;color:#6b6b6b;font-size:13px;width:90px;vertical-align:top">${label}</td><td style="padding:6px 0;color:#E8E8EA;font-size:15px">${esc(value)}</td></tr>`
   return {
-    subject: `🛵 New delivery: ${o.storeName} → ${o.dropoffAddress.split(",")[0]}`,
+    subject: `${o.priority ? "⚡ PRIORITY" : "🛵 New"} delivery: ${o.storeName} → ${o.dropoffAddress.split(",")[0]}`,
     html: layout(`New delivery for you, ${first}!`, `
+      ${o.priority ? `<p style="margin:0 0 16px;background:#7EC8B8;color:#0D0D0F;font-weight:700;padding:10px 14px;border-radius:10px">⚡ PRIORITY — the customer paid for fast delivery. Do this one first.</p>` : ""}
       <table cellpadding="0" cellspacing="0" style="margin:0 0 20px;width:100%">
         ${row("Store", o.storeName)}
         ${row("Pickup", o.pickupAddress)}
@@ -103,6 +105,6 @@ export function newDeliveryEmail(o: {
       </table>
       <p style="margin:0 0 24px"><a href="${link}" style="display:inline-block;background:#7EC8B8;color:#0D0D0F;text-decoration:none;font-weight:700;padding:12px 24px;border-radius:999px">Open delivery</a></p>
       <p style="margin:0;font-size:13px;color:#6b6b6b">Head to the store, then tap “Picked up” in the driver app so the customer can follow you.</p>`),
-    text: `New FitDrop delivery!\n\nStore: ${o.storeName}\nPickup: ${o.pickupAddress}\nDrop-off: ${o.dropoffAddress}\nItems: ${o.itemCount}\n\nOpen: ${link}`,
+    text: `${o.priority ? "PRIORITY (fast delivery) — do this one first!\n\n" : ""}New FitDrop delivery!\n\nStore: ${o.storeName}\nPickup: ${o.pickupAddress}\nDrop-off: ${o.dropoffAddress}\nItems: ${o.itemCount}\n\nOpen: ${link}`,
   }
 }

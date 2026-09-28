@@ -43,3 +43,6 @@ export function deliveryFeeFor(cart: { store?: string; slug?: string }[]): numbe
   }
   return Math.round([...fees.values()].reduce((a, b) => a + b, 0) * 100) / 100
 }
+
+/** "Fast delivery" add-on: the order is flagged PRIORITY and goes to the top of the driver's list. */
+export const PRIORITY_FEE = 3.99

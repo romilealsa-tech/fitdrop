@@ -12,6 +12,7 @@ export type StoredOrder = {
   address: any
   billing?: any
   trackingToken?: string | null
+  priority?: boolean
 }
 
 function read<T>(key: string, fallback: T): T {

@@ -14,7 +14,7 @@ import { getStoreLocations } from "@/lib/storeConfig"
 export async function POST(req: NextRequest) {
   try {
     await connectDB()
-    const { items, total, address } = await req.json()
+    const { items, total, address, priority } = await req.json()
 
     if (!items?.length || !total || !address) {
       return NextResponse.json({ error: "items, total and address are required" }, { status: 400 })
@@ -46,6 +46,7 @@ export async function POST(req: NextRequest) {
     const order = await Order.create({
       items, total, address: addressFields, store: storeSlug, pickupAddress, dropoffAddress,
       pickupLocation, pickupLocationId, pickupName, dropoffLocation, trackingToken,
+      priority: priority === true,
     })
 
     // Auto-assign to the first approved & available driver.
@@ -60,7 +61,7 @@ export async function POST(req: NextRequest) {
 
       if (driver.pushSubscription) {
         await sendPushToDriver(driver.pushSubscription, {
-          title: "🛵 New FitDrop delivery",
+          title: priority === true ? "⚡ PRIORITY FitDrop delivery — do this one first" : "🛵 New FitDrop delivery",
           body: `Pickup: ${pickupAddress}\nDrop-off: ${dropoffAddress}`,
           url: "/driver",
         })
@@ -77,6 +78,7 @@ export async function POST(req: NextRequest) {
           pickupAddress,
           dropoffAddress,
           itemCount,
+          priority: priority === true,
         }),
       })
     }

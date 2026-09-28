@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
     const orders = await Order.find({
       driverId: driver._id,
       status: { $in: ["assigned", "picked_up"] },
-    }).sort({ createdAt: -1 }).lean()
+    }).sort({ priority: -1, createdAt: 1 }).lean() // fast-delivery orders first, then oldest first
 
     return NextResponse.json({ orders })
   } catch (error: any) {

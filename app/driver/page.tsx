@@ -16,6 +16,7 @@ type Order = {
   items: { name: string; qty: number }[]
   pickupAddress: string
   pickupName?: string
+  priority?: boolean
   dropoffAddress: string
   status: string
   address: { firstName: string; lastName: string }
@@ -298,7 +299,12 @@ export default function DriverPage() {
 
             <div className="flex flex-col gap-4">
               {orders.map((order) => (
-                <div key={order._id} className="bg-[#1C1C1E] border border-[#2B2B2E] rounded-2xl p-5">
+                <div key={order._id} className={`bg-[#1C1C1E] border rounded-2xl p-5 ${order.priority ? "border-[#7EC8B8] ring-1 ring-[#7EC8B8]/40" : "border-[#2B2B2E]"}`}>
+                  {order.priority && (
+                    <p className="text-xs bg-[#7EC8B8] text-[#0D0D0F] font-black uppercase tracking-widest rounded-full px-3 py-1 inline-block mb-3">
+                      ⚡ Priority — do this one first
+                    </p>
+                  )}
                   <p className="text-xs text-[#7EC8B8] uppercase tracking-widest font-bold mb-3">
                     {order.status === "assigned" ? "New delivery" : "Picked up"}
                   </p>

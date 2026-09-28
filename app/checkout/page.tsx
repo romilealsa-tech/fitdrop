@@ -3,7 +3,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCart } from "../CartContext"
-import { deliveryFeeFor } from "../../lib/stores"
+import { deliveryFeeFor, PRIORITY_FEE } from "../../lib/stores"
 import { saveOrder } from "../../lib/orderHistory"
 import AddressAutocomplete from "../components/AddressAutocomplete"
 import { isManhattanZip, hasMapsKey, type LatLng } from "../../lib/googleMaps"
@@ -13,6 +13,13 @@ import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
 type Step = "address" | "payment" | "review"
+
+/** "1 h 45 min" / "35 min" */
+function formatMinutes(min: number) {
+  if (min < 60) return `${min} min`
+  const h = Math.floor(min / 60), m = min % 60
+  return m ? `${h} h ${m} min` : `${h} h`
+}
 
 function CheckoutForm({ clientSecret, onSuccess }: { clientSecret: string; onSuccess: () => void }) {
   const stripe = useStripe()
@@ -83,7 +90,7 @@ export default function CheckoutPage() {
 
   // Which store the order will come from + estimated delivery time (max 1.5h)
   type Quote =
-    | { ok: true; location: { name: string; address: string }; distanceMiles: number | null; etaMinutes: number | null; nearest: { name: string; missingItems: string[] } | null }
+    | { ok: true; location: { name: string; address: string }; distanceMiles: number | null; etaMinutes: number | null; overLimit: boolean; nearest: { name: string; missingItems: string[] } | null }
     | { ok: false; reason: string; message: string }
   const [quote, setQuote] = useState<Quote | null>(null)
   const [quoteLoading, setQuoteLoading] = useState(false)
@@ -115,7 +122,9 @@ export default function CheckoutPage() {
 
   const delivery = deliveryFeeFor(cart)
   const tax = total * 0.08875
-  const orderTotal = total + delivery + tax
+  const [priority, setPriority] = useState(false)
+  const priorityFee = priority ? PRIORITY_FEE : 0
+  const orderTotal = total + delivery + priorityFee + tax
 
   const validateAddress = () => {
     const e: Record<string, string> = {}
@@ -141,7 +150,7 @@ export default function CheckoutPage() {
   const handleContinueToPayment = async () => {
     if (!validateAddress()) return
     if (quoteLoading) return
-    if (quote && !quote.ok) return // can't be delivered within 1.5h — message is shown
+    if (quote && !quote.ok) return // no store has everything in the cart — message is shown
     setLoadingPayment(true)
     try {
       const res = await fetch("/api/stripe", {
@@ -172,7 +181,7 @@ export default function CheckoutPage() {
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: cart, total: orderTotal.toFixed(2), address: { ...address, location } }),
+        body: JSON.stringify({ items: cart, total: orderTotal.toFixed(2), address: { ...address, location }, priority }),
       })
       const data = await res.json().catch(() => ({}))
       trackingToken = data.trackingToken || null
@@ -186,6 +195,7 @@ export default function CheckoutPage() {
       id: orderId,
       items: cart,
       total: orderTotal.toFixed(2),
+      priority,
       address,
       billing: effectiveBilling,
       trackingToken,
@@ -297,8 +307,14 @@ export default function CheckoutPage() {
                         {quote.distanceMiles !== null && <span className="text-[#8a8a8e]"> · {quote.distanceMiles} mi away</span>}
                       </p>
                       <p className="text-[#8a8a8e] text-xs mt-1">{quote.location.address}</p>
-                      {quote.etaMinutes !== null && (
-                        <p className="text-[#7EC8B8] font-semibold mt-2">⚡ Arrives in about {quote.etaMinutes} min</p>
+                      {quote.etaMinutes !== null && !quote.overLimit && (
+                        <p className="text-[#7EC8B8] font-semibold mt-2">⚡ Arrives in about {formatMinutes(quote.etaMinutes)}</p>
+                      )}
+                      {quote.etaMinutes !== null && quote.overLimit && (
+                        <p className="text-amber-300 font-semibold mt-2">
+                          ⏱ This one takes longer: about {formatMinutes(quote.etaMinutes)}, because we&apos;re bringing it from {quote.location.name}
+                          {quote.nearest ? " — the closest store that has everything you picked." : ", the closest store to your address."}
+                        </p>
                       )}
                       {quote.nearest && (
                         <p className="text-[#b5b5b8] text-xs mt-2">
@@ -314,6 +330,25 @@ export default function CheckoutPage() {
                   )}
                 </div>
               )}
+
+              {/* Fast delivery add-on */}
+              <button
+                type="button"
+                onClick={() => setPriority(p => !p)}
+                aria-pressed={priority}
+                className={`w-full text-left rounded-2xl border p-4 mb-8 flex items-center gap-4 transition ${
+                  priority ? "border-[#7EC8B8] bg-[#7EC8B8]/10" : "border-[#2B2B2E] bg-[#1C1C1E] hover:border-[#6b6b6b]"
+                }`}
+              >
+                <span className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 ${priority ? "bg-[#7EC8B8] border-[#7EC8B8]" : "border-[#6b6b6b]"}`}>
+                  {priority && <span className="text-[#0D0D0F] text-xs font-black">✓</span>}
+                </span>
+                <span className="flex-1">
+                  <span className="block font-semibold text-[#E8E8EA]">⚡ Fast delivery</span>
+                  <span className="block text-xs text-[#8a8a8e] mt-0.5">Your order jumps to the front of the line — your driver handles it first.</span>
+                </span>
+                <span className="text-[#7EC8B8] font-bold text-sm">+${PRIORITY_FEE.toFixed(2)}</span>
+              </button>
 
               <div className="border-t border-[#2B2B2E] pt-8 mb-6">
                 <h2 className="text-2xl font-bold mb-4 text-[#E8E8EA]">Billing Address</h2>
@@ -431,6 +466,11 @@ export default function CheckoutPage() {
               <div className="flex justify-between text-[#6b6b6b]">
                 <span>Delivery</span><span>${delivery.toFixed(2)}</span>
               </div>
+              {priority && (
+                <div className="flex justify-between text-[#7EC8B8]">
+                  <span>⚡ Fast delivery</span><span>${priorityFee.toFixed(2)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-[#6b6b6b]">
                 <span>Tax (NYC)</span><span>${tax.toFixed(2)}</span>
               </div>

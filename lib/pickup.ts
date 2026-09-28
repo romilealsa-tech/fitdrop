@@ -36,16 +36,19 @@ export type PickupQuote =
       location: StoreLocation
       distanceMiles: number | null
       etaMinutes: number | null
+      /** ETA is over the 1.5h FitDrop target (order still allowed — customer is told why). */
+      overLimit: boolean
       /** Set when the closest store couldn't be used because it's missing items. */
       nearest: { name: string; missingItems: string[] } | null
     }
-  | { ok: false; reason: "too_far" | "not_in_stock_nearby" | "unknown_store"; message: string }
+  | { ok: false; reason: "not_in_stock" | "unknown_store"; message: string }
 
 /**
  * Chooses where an order is picked up:
  *  1. only store locations that stock EVERY item (Product.locations; empty = everywhere),
- *  2. only locations that can deliver within MAX_DELIVERY_MINUTES,
- *  3. the closest of those to the customer.
+ *  2. the closest of those to the customer.
+ * If that means more than MAX_DELIVERY_MINUTES, the order is still allowed; `overLimit`
+ * lets checkout tell the customer the real time and which store it's coming from.
  * Without customer coordinates, returns the first eligible (flagship) location with no ETA.
  */
 export async function quotePickup(storeSlug: string, items: CartItem[], dropoff: LatLng | null): Promise<PickupQuote> {
@@ -60,13 +63,14 @@ export async function quotePickup(storeSlug: string, items: CartItem[], dropoff:
     : []
   const missingAt = (loc: StoreLocation) =>
     products.filter(p => p.locations?.length && !p.locations.includes(loc.id)).map(p => p.name)
+
   const inStock = all.filter(loc => missingAt(loc).length === 0)
+  if (inStock.length === 0) {
+    return { ok: false, reason: "not_in_stock", message: `No single ${brand} store has everything in your cart right now. Try removing an item.` }
+  }
 
   if (!dropoff) {
-    if (inStock.length === 0) {
-      return { ok: false, reason: "not_in_stock_nearby", message: `No single ${brand} store has all the items in your cart right now.` }
-    }
-    return { ok: true, location: inStock[0], distanceMiles: null, etaMinutes: null, nearest: null }
+    return { ok: true, location: inStock[0], distanceMiles: null, etaMinutes: null, overLimit: false, nearest: null }
   }
 
   const ranked = all
@@ -77,28 +81,21 @@ export async function quotePickup(storeSlug: string, items: CartItem[], dropoff:
     .sort((a, b) => a.miles - b.miles)
 
   const closest = ranked[0]
-  if (closest.eta > MAX_DELIVERY_MINUTES) {
-    return {
-      ok: false,
-      reason: "too_far",
-      message: `This address is too far from ${brand} for FitDrop delivery (max 1.5 hours).`,
-    }
-  }
-
-  const best = ranked.find(r => r.eta <= MAX_DELIVERY_MINUTES && missingAt(r.loc).length === 0)
-  if (!best) {
-    return {
-      ok: false,
-      reason: "not_in_stock_nearby",
-      message: `The ${brand} stores close enough to deliver in under 1.5 hours don't have everything in your cart. Try removing an item.`,
-    }
-  }
+  const best = ranked.find(r => missingAt(r.loc).length === 0)!
 
   return {
     ok: true,
     location: best.loc,
     distanceMiles: Math.round(best.miles * 10) / 10,
     etaMinutes: best.eta,
+    overLimit: best.eta > MAX_DELIVERY_MINUTES,
     nearest: best.loc.id === closest.loc.id ? null : { name: closest.loc.name, missingItems: missingAt(closest.loc) },
   }
+}
+
+/** "1 h 45 min" / "35 min" */
+export function formatMinutes(min: number) {
+  if (min < 60) return `${min} min`
+  const h = Math.floor(min / 60), m = min % 60
+  return m ? `${h} h ${m} min` : `${h} h`
 }

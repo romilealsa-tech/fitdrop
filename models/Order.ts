@@ -26,6 +26,8 @@ const OrderSchema = new mongoose.Schema({
   },
   // Unguessable id for the customer's public tracking link (/track/<token>)
   trackingToken: { type: String, index: true, default: null },
+  // "Fast delivery" add-on: shown as PRIORITY and first in the driver's list
+  priority: { type: Boolean, default: false },
   status: { type: String, default: "placed" }, // placed | assigned | picked_up | delivered
   driverId: { type: mongoose.Schema.Types.ObjectId, ref: "DriverApplication", default: null },
 }, { timestamps: true })
