@@ -12,7 +12,6 @@ export const metadata: Metadata = {
     title: "FitDrop Driver",
     statusBarStyle: "black-translucent",
   },
-  icons: { apple: "/icon-192.png" },
 }
 
 export const viewport: Viewport = {
