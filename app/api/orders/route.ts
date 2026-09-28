@@ -6,7 +6,8 @@ import { sendPushToDriver } from "@/lib/webpush"
 import { randomBytes } from "crypto"
 import { STORE_PICKUP_ADDRESSES, STORE_PICKUP_LOCATIONS, STORE_NAMES } from "@/lib/storeConfig"
 import { sendEmail, newDeliveryEmail } from "@/lib/email"
-import { choosePickupLocation } from "@/lib/pickup"
+import { quotePickup } from "@/lib/pickup"
+import { getStoreLocations } from "@/lib/storeConfig"
 
 // Public: called right after a successful Stripe payment to persist the
 // order and auto-assign it to the first available approved driver.
@@ -29,7 +30,11 @@ export async function POST(req: NextRequest) {
       loc && Number.isFinite(loc.lat) && Number.isFinite(loc.lng) ? { lat: Number(loc.lat), lng: Number(loc.lng) } : null
 
     // Pickup from the NEAREST store location that has every item in stock
-    const pickup = await choosePickupLocation(storeSlug, items, dropoffLocation)
+    // (checkout already showed this quote and blocked orders that can't arrive within 1.5h;
+    //  if something changed since, fall back to the flagship rather than lose a paid order)
+    const quote = await quotePickup(storeSlug, items, dropoffLocation)
+    const pickup = quote.ok ? quote.location : getStoreLocations(storeSlug)[0] || null
+    if (!quote.ok) console.warn(`[orders] pickup quote failed after payment (${quote.reason}) — using flagship`)
     const pickupAddress = pickup?.address || STORE_PICKUP_ADDRESSES[storeSlug] || "Pickup address not configured"
     const pickupLocation = pickup ? { lat: pickup.lat, lng: pickup.lng } : STORE_PICKUP_LOCATIONS[storeSlug] || null
     const pickupLocationId = pickup?.id || ""

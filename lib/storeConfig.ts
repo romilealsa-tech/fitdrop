@@ -45,11 +45,48 @@ export const STORE_REGISTRY: StoreConfig[] = [
       { id: "zara-fidi", name: "Zara Financial District", address: "222 Broadway, New York, NY 10038", lat: 40.7109, lng: -74.0089 },
     ],
   },
-  { slug: "uniqlo", name: "Uniqlo", shopifyDomain: "uniqlo-fitdrop.myshopify.com", pickupAddress: "546 Broadway, New York, NY 10012", pickupLocation: { lat: 40.7236, lng: -73.9983 } },
-  { slug: "hm", name: "H&M", shopifyDomain: "hm-fitdrop.myshopify.com", pickupAddress: "435 7th Ave, New York, NY 10001", pickupLocation: { lat: 40.751, lng: -73.9905 } },
-  { slug: "nike", name: "Nike", shopifyDomain: "nike-fitdrop.myshopify.com", pickupAddress: "650 5th Ave, New York, NY 10019", pickupLocation: { lat: 40.76, lng: -73.9763 } },
+  {
+    slug: "uniqlo", name: "Uniqlo", shopifyDomain: "uniqlo-fitdrop.myshopify.com",
+    pickupAddress: "546 Broadway, New York, NY 10012", pickupLocation: { lat: 40.7236, lng: -73.9983 },
+    locations: [
+      { id: "uniqlo-soho", name: "Uniqlo SoHo", address: "546 Broadway, New York, NY 10012", lat: 40.7236, lng: -73.9983 },
+      { id: "uniqlo-fifth-ave", name: "Uniqlo Fifth Avenue", address: "666 5th Ave, New York, NY 10103", lat: 40.7603, lng: -73.9757 },
+      { id: "uniqlo-34th-st", name: "Uniqlo 34th Street", address: "31 W 34th St, New York, NY 10001", lat: 40.7489, lng: -73.9863 },
+      { id: "uniqlo-bryant-park", name: "Uniqlo Bryant Park", address: "510 5th Ave, New York, NY 10036", lat: 40.754, lng: -73.9806 },
+      { id: "uniqlo-union-square", name: "Uniqlo Union Square", address: "860 Broadway, New York, NY 10003", lat: 40.7374, lng: -73.9903 },
+      { id: "uniqlo-hudson-yards", name: "Uniqlo Hudson Yards", address: "20 Hudson Yards, New York, NY 10001", lat: 40.7538, lng: -74.002 },
+    ],
+  },
+  {
+    slug: "hm", name: "H&M", shopifyDomain: "hm-fitdrop.myshopify.com",
+    pickupAddress: "1 Herald Center, New York, NY 10001", pickupLocation: { lat: 40.7494, lng: -73.9887 },
+    locations: [
+      { id: "hm-herald-square", name: "H&M Herald Square", address: "1 Herald Center, New York, NY 10001", lat: 40.7494, lng: -73.9887 },
+      { id: "hm-fifth-ave", name: "H&M Fifth Avenue", address: "505 5th Ave, New York, NY 10017", lat: 40.7532, lng: -73.9805 },
+      { id: "hm-hudson-yards", name: "H&M Hudson Yards", address: "20 Hudson Yards, New York, NY 10001", lat: 40.7538, lng: -74.002 },
+      { id: "hm-soho", name: "H&M SoHo", address: "558 Broadway, New York, NY 10012", lat: 40.7241, lng: -73.9978 },
+      { id: "hm-harlem", name: "H&M Harlem", address: "125 W 125th St, New York, NY 10027", lat: 40.8083, lng: -73.9469 },
+    ],
+  },
+  {
+    slug: "nike", name: "Nike", shopifyDomain: "nike-fitdrop.myshopify.com",
+    pickupAddress: "650 5th Ave, New York, NY 10019", pickupLocation: { lat: 40.76, lng: -73.9763 },
+    locations: [
+      { id: "nike-fifth-ave", name: "Nike House of Innovation", address: "650 5th Ave, New York, NY 10019", lat: 40.76, lng: -73.9763 },
+      { id: "nike-soho", name: "Nike SoHo", address: "529 Broadway, New York, NY 10012", lat: 40.7232, lng: -73.9992 },
+    ],
+  },
   { slug: "cos", name: "COS", shopifyDomain: "cos-fitdrop.myshopify.com", pickupAddress: "129 Prince St, New York, NY 10012", pickupLocation: { lat: 40.7253, lng: -73.999 } },
-  { slug: "mango", name: "Mango", shopifyDomain: "mango-fitdrop.myshopify.com", pickupAddress: "1 Herald Sq, New York, NY 10001", pickupLocation: { lat: 40.7496, lng: -73.988 } },
+  {
+    slug: "mango", name: "Mango", shopifyDomain: "mango-fitdrop.myshopify.com",
+    pickupAddress: "711 5th Ave, New York, NY 10022", pickupLocation: { lat: 40.7621, lng: -73.9745 },
+    locations: [
+      { id: "mango-fifth-ave", name: "Mango Fifth Avenue", address: "711 5th Ave, New York, NY 10022", lat: 40.7621, lng: -73.9745 },
+      { id: "mango-soho", name: "Mango SoHo", address: "561 Broadway, New York, NY 10012", lat: 40.724, lng: -73.9975 },
+      { id: "mango-hudson-yards", name: "Mango Hudson Yards", address: "20 Hudson Yards, New York, NY 10001", lat: 40.7538, lng: -74.002 },
+      { id: "mango-lincoln-square", name: "Mango Lincoln Square", address: "1976 Broadway, New York, NY 10023", lat: 40.7751, lng: -73.982 },
+    ],
+  },
   // Demo store used for internal testing / showing the app to prospective brands.
   // Not connected to Shopify — its products are added directly in MongoDB.
   { slug: "marlow", name: "Marlow", pickupAddress: "180 Orchard St, New York, NY 10002", pickupLocation: { lat: 40.7219, lng: -73.9885 } },

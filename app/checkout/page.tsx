@@ -6,7 +6,7 @@ import { useCart } from "../CartContext"
 import { deliveryFeeFor } from "../../lib/stores"
 import { saveOrder } from "../../lib/orderHistory"
 import AddressAutocomplete from "../components/AddressAutocomplete"
-import { isManhattanZip, type LatLng } from "../../lib/googleMaps"
+import { isManhattanZip, hasMapsKey, type LatLng } from "../../lib/googleMaps"
 import { loadStripe } from "@stripe/stripe-js"
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js"
 
@@ -81,6 +81,30 @@ export default function CheckoutPage() {
   // Map coordinates from Google Places (null when typed by hand)
   const [location, setLocation] = useState<LatLng | null>(null)
 
+  // Which store the order will come from + estimated delivery time (max 1.5h)
+  type Quote =
+    | { ok: true; location: { name: string; address: string }; distanceMiles: number | null; etaMinutes: number | null; nearest: { name: string; missingItems: string[] } | null }
+    | { ok: false; reason: string; message: string }
+  const [quote, setQuote] = useState<Quote | null>(null)
+  const [quoteLoading, setQuoteLoading] = useState(false)
+  const cartKey = cart.map((i: any) => `${i._id || i.id}x${i.qty}`).join(",")
+  useEffect(() => {
+    if (!location || cart.length === 0) { setQuote(null); return }
+    let cancelled = false
+    setQuoteLoading(true)
+    fetch("/api/pickup-quote", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ items: cart, location }),
+    })
+      .then(r => r.json())
+      .then(q => { if (!cancelled) setQuote(q?.ok !== undefined ? q : null) })
+      .catch(() => { if (!cancelled) setQuote(null) })
+      .finally(() => { if (!cancelled) setQuoteLoading(false) })
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location?.lat, location?.lng, cartKey])
+
   const [billingSameAsDelivery, setBillingSameAsDelivery] = useState(true)
   const [billing, setBilling] = useState({
     firstName: "", lastName: "",
@@ -102,6 +126,8 @@ export default function CheckoutPage() {
     if (!address.street) e.street = "Required"
     if (!address.zip || address.zip.length < 5) e.zip = "Valid ZIP required"
     else if (!isManhattanZip(address.zip)) e.zip = "We only deliver in Manhattan for now"
+    // Delivery time depends on the exact address, so it must come from the suggestions
+    if (hasMapsKey() && address.street && !location) e.street = "Choose your address from the suggestions"
     if (!billingSameAsDelivery) {
       if (!billing.firstName) e.billingFirstName = "Required"
       if (!billing.lastName) e.billingLastName = "Required"
@@ -114,6 +140,8 @@ export default function CheckoutPage() {
 
   const handleContinueToPayment = async () => {
     if (!validateAddress()) return
+    if (quoteLoading) return
+    if (quote && !quote.ok) return // can't be delivered within 1.5h — message is shown
     setLoadingPayment(true)
     try {
       const res = await fetch("/api/stripe", {
@@ -256,6 +284,37 @@ export default function CheckoutPage() {
               </div>
 
               {/* Billing */}
+              {/* Pickup store + delivery estimate */}
+              {(quoteLoading || quote) && (
+                <div className={`rounded-2xl border p-4 mb-8 text-sm ${
+                  quote && !quote.ok ? "border-red-500/40 bg-red-500/5" : "border-[#2B2B2E] bg-[#1C1C1E]"
+                }`}>
+                  {quoteLoading && !quote && <p className="text-[#6b6b6b]">Finding the closest store…</p>}
+                  {quote && quote.ok && (
+                    <>
+                      <p className="text-[#E8E8EA]">
+                        🛍️ Coming from <strong>{quote.location.name}</strong>
+                        {quote.distanceMiles !== null && <span className="text-[#8a8a8e]"> · {quote.distanceMiles} mi away</span>}
+                      </p>
+                      <p className="text-[#8a8a8e] text-xs mt-1">{quote.location.address}</p>
+                      {quote.etaMinutes !== null && (
+                        <p className="text-[#7EC8B8] font-semibold mt-2">⚡ Arrives in about {quote.etaMinutes} min</p>
+                      )}
+                      {quote.nearest && (
+                        <p className="text-[#b5b5b8] text-xs mt-2">
+                          Your closest store, {quote.nearest.name}, doesn&apos;t have{" "}
+                          {quote.nearest.missingItems.length ? quote.nearest.missingItems.join(", ") : "everything in your cart"}
+                          {" "}— so we&apos;ll bring it from {quote.location.name}.
+                        </p>
+                      )}
+                    </>
+                  )}
+                  {quote && !quote.ok && (
+                    <p className="text-red-400">{quote.message}</p>
+                  )}
+                </div>
+              )}
+
               <div className="border-t border-[#2B2B2E] pt-8 mb-6">
                 <h2 className="text-2xl font-bold mb-4 text-[#E8E8EA]">Billing Address</h2>
                 <label className="flex items-center gap-3 cursor-pointer mb-6 group">
