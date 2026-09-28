@@ -54,3 +54,22 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
+
+// Public (email-identified): an approved driver goes online / offline.
+// Only available drivers get new orders assigned.
+export async function PATCH(req: NextRequest) {
+  try {
+    await connectDB()
+    const { email, available } = await req.json()
+    if (!email || typeof available !== "boolean") {
+      return NextResponse.json({ error: "email and available (true/false) are required" }, { status: 400 })
+    }
+    const driver = await findApprovedDriver(email)
+    if (!driver) return NextResponse.json({ error: "Not an approved driver" }, { status: 403 })
+    driver.available = available
+    await driver.save()
+    return NextResponse.json({ available: driver.available })
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+}

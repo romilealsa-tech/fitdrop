@@ -18,6 +18,7 @@ export async function GET(req: NextRequest) {
       approved: driver.status === "approved",
       name: driver.name,
       subscribed: !!driver.pushSubscription,
+      available: !!driver.available,
     })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })

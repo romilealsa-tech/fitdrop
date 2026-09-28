@@ -26,6 +26,8 @@ export default function DriverPage() {
   const [email, setEmail] = useState("")
   const [stage, setStage] = useState<"enter" | "checking" | "not-approved" | "ready">("enter")
   const [subscribed, setSubscribed] = useState(false)
+  const [available, setAvailable] = useState(false)
+  const [savingAvailable, setSavingAvailable] = useState(false)
   const [orders, setOrders] = useState<Order[]>([])
   const [error, setError] = useState("")
   const [myLocation, setMyLocation] = useState<{ lat: number; lng: number } | null>(null)
@@ -95,11 +97,32 @@ export default function DriverPage() {
         return
       }
       setSubscribed(!!data.subscribed)
+      setAvailable(!!data.available)
       localStorage.setItem("fitdrop_driver_email", em)
       setStage("ready")
     } catch {
       setError("Something went wrong. Try again.")
       setStage("enter")
+    }
+  }
+
+  async function toggleAvailable() {
+    const next = !available
+    setSavingAvailable(true)
+    setError("")
+    try {
+      const res = await fetch("/api/drivers/me", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, available: next }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Could not update")
+      setAvailable(!!data.available)
+    } catch (e: any) {
+      setError(e.message || "Could not update availability. Try again.")
+    } finally {
+      setSavingAvailable(false)
     }
   }
 
@@ -193,22 +216,39 @@ export default function DriverPage() {
 
         {stage === "ready" && (
           <div>
-            {!subscribed && (
-              <div className="bg-[#1C1C1E] border border-[#2B2B2E] rounded-2xl p-6 mb-6">
-                <p className="text-sm text-[#6b6b6b] mb-4">
-                  Enable notifications so you get alerted the instant a delivery is assigned to you.
+            {/* Online / offline — only available drivers get new orders */}
+            <div className="bg-[#1C1C1E] border border-[#2B2B2E] rounded-2xl p-5 mb-4 flex items-center justify-between gap-4">
+              <div>
+                <p className="font-semibold text-[#E8E8EA]">{available ? "You're available" : "You're offline"}</p>
+                <p className="text-xs text-[#6b6b6b] mt-1">
+                  {available
+                    ? "New deliveries will be assigned to you. You'll get an email for each one."
+                    : "Turn this on to start receiving deliveries."}
                 </p>
-                {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
-                <button
-                  onClick={enableNotifications}
-                  className="w-full bg-[#7EC8B8] text-[#0D0D0F] py-3 rounded-full font-bold hover:bg-[#6ab5a5] transition"
-                >
-                  Enable Notifications
-                </button>
               </div>
-            )}
-            {subscribed && (
-              <p className="text-xs text-[#7EC8B8] mb-6 text-center">🔔 Notifications enabled</p>
+              <button
+                role="switch"
+                aria-checked={available}
+                aria-label="Available for deliveries"
+                onClick={toggleAvailable}
+                disabled={savingAvailable}
+                className={`relative shrink-0 w-14 h-8 rounded-full transition ${available ? "bg-[#7EC8B8]" : "bg-[#2B2B2E]"} ${savingAvailable ? "opacity-60" : ""}`}
+              >
+                <span className={`absolute top-1 left-1 w-6 h-6 rounded-full bg-white shadow transition-transform ${available ? "translate-x-6" : ""}`} />
+              </button>
+            </div>
+            {error && <p className="text-red-400 text-sm mb-4 text-center">{error}</p>}
+
+            {/* Optional extra: push notifications (Android, or iPhone Home Screen app) */}
+            {!subscribed ? (
+              <button
+                onClick={enableNotifications}
+                className="w-full text-xs text-[#6b6b6b] hover:text-[#E8E8EA] underline underline-offset-4 mb-6"
+              >
+                Optional: also get push notifications on this phone
+              </button>
+            ) : (
+              <p className="text-xs text-[#7EC8B8] mb-6 text-center">🔔 Push notifications enabled</p>
             )}
 
             {locationError && orders.length > 0 && (
