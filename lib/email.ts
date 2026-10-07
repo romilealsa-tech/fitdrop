@@ -8,8 +8,10 @@
 import { SITE_URL } from "./seo"
 
 const FROM = process.env.EMAIL_FROM || "FitDrop <drivers@shopfitdrop.com>"
+/** Sender for emails to customers (order confirmations and updates) */
+export const CUSTOMER_FROM = "FitDrop <orders@shopfitdrop.com>"
 
-export async function sendEmail({ to, subject, html, text }: { to: string; subject: string; html: string; text: string }) {
+export async function sendEmail({ to, subject, html, text, from }: { to: string; subject: string; html: string; text: string; from?: string }) {
   const key = process.env.RESEND_API_KEY
   if (!key) {
     console.warn(`[email] RESEND_API_KEY not set — skipped "${subject}" to ${to}`)
@@ -19,7 +21,7 @@ export async function sendEmail({ to, subject, html, text }: { to: string; subje
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from: FROM, to: [to], subject, html, text }),
+      body: JSON.stringify({ from: from || FROM, to: [to], subject, html, text }),
     })
     if (!res.ok) {
       const body = await res.text()
@@ -118,5 +120,76 @@ export function driverLoginCodeEmail(name: string, code: string) {
       <p style="margin:0 0 20px;font-size:34px;font-weight:700;letter-spacing:10px;color:#7EC8B8">${code}</p>
       <p style="margin:0;font-size:13px;color:#6b6b6b">It expires in 10 minutes. If you didn't ask for it, you can ignore this email.</p>`),
     text: `Your FitDrop driver code is ${code}. It expires in 10 minutes. If you didn't ask for it, ignore this email.`,
+  }
+}
+
+// ---------- Customer emails ----------
+
+const button = (href: string, label: string) =>
+  `<a href="${href}" style="display:inline-block;background:#7EC8B8;color:#0D0D0F;text-decoration:none;font-weight:700;padding:10px 20px;border-radius:999px;margin:0 8px 8px 0">${esc(label)}</a>`
+
+const trackUrl = (token: string) => `${SITE_URL}/track/${token}`
+
+export function orderConfirmationEmail(o: {
+  firstName: string
+  items: { name: string; qty: number; price: string }[]
+  total: string
+  dropoffAddress: string
+  priority: boolean
+  pickups: { trackingToken: string; storeName: string; etaMinutes: number | null }[]
+}) {
+  const first = esc(o.firstName || "there")
+  const etas = o.pickups.map(p => p.etaMinutes).filter((m): m is number => m !== null)
+  const eta = etas.length === o.pickups.length && etas.length ? Math.max(...etas) : null
+  const rows = o.items
+    .map(i => `<tr><td style="padding:6px 0;color:#E8E8EA">${esc(i.name)} <span style="color:#6b6b6b">×${i.qty}</span></td><td style="padding:6px 0;text-align:right;color:#E8E8EA">${esc(i.price)}</td></tr>`)
+    .join("")
+  const buttons = o.pickups
+    .map(p => button(trackUrl(p.trackingToken), o.pickups.length > 1 ? `Track ${p.storeName}` : "Track your delivery"))
+    .join("")
+  return {
+    from: CUSTOMER_FROM,
+    subject: `Your FitDrop order is confirmed${eta ? ` — arriving in about ${eta} min` : ""}`,
+    html: layout(`Thanks, ${first}! Your order is confirmed.`, `
+      ${o.priority ? `<p style="margin:0 0 16px;color:#7EC8B8;font-weight:700">⚡ Fast delivery — your order goes first.</p>` : ""}
+      ${eta ? `<p style="margin:0 0 16px">Estimated arrival: <strong style="color:#E8E8EA">about ${eta} minutes</strong>.</p>` : ""}
+      ${o.pickups.length > 1 ? `<p style="margin:0 0 16px">Your order comes from ${o.pickups.length} stores, so it may arrive in more than one bag.</p>` : ""}
+      <table cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 12px;font-size:14px">${rows}
+        <tr><td style="padding:10px 0 0;border-top:1px solid #2B2B2E;font-weight:700;color:#E8E8EA">Total paid</td><td style="padding:10px 0 0;border-top:1px solid #2B2B2E;text-align:right;font-weight:700;color:#7EC8B8">$${esc(o.total)}</td></tr>
+      </table>
+      <p style="margin:0 0 20px;font-size:13px;color:#6b6b6b">Delivering to ${esc(o.dropoffAddress)}</p>
+      <p style="margin:0">${buttons}</p>`),
+    text: `Thanks, ${o.firstName || "there"}! Your FitDrop order is confirmed.${eta ? ` Estimated arrival: about ${eta} minutes.` : ""}\n\nTotal paid: $${o.total}\nDelivering to ${o.dropoffAddress}\n\n` +
+      o.pickups.map(p => `Track ${p.storeName}: ${trackUrl(p.trackingToken)}`).join("\n"),
+  }
+}
+
+type OrderDoc = { address?: { firstName?: string }; pickupName?: string; trackingToken?: string; pickupCount?: number }
+
+export function orderOnTheWayEmail(o: OrderDoc) {
+  const first = esc(o.address?.firstName || "there")
+  const from = esc(o.pickupName || "the store")
+  const link = o.trackingToken ? trackUrl(o.trackingToken) : SITE_URL
+  return {
+    from: CUSTOMER_FROM,
+    subject: `Your FitDrop order from ${o.pickupName || "the store"} is on the way 🛵`,
+    html: layout(`It's on the way, ${first}!`, `
+      <p style="margin:0 0 20px">Your driver just picked up your order at <strong style="color:#E8E8EA">${from}</strong> and is heading to you. Follow them live on the map:</p>
+      <p style="margin:0">${button(link, "Track live")}</p>`),
+    text: `Your FitDrop order from ${o.pickupName || "the store"} is on the way! Track it live: ${link}`,
+  }
+}
+
+export function orderDeliveredEmail(o: OrderDoc) {
+  const first = esc(o.address?.firstName || "there")
+  const from = esc(o.pickupName || "the store")
+  return {
+    from: CUSTOMER_FROM,
+    subject: `Delivered: your FitDrop order from ${o.pickupName || "the store"} ✨`,
+    html: layout(`Delivered! Enjoy, ${first}.`, `
+      <p style="margin:0 0 16px">Your order from <strong style="color:#E8E8EA">${from}</strong> was delivered.${(o.pickupCount ?? 1) > 1 ? " Your other bag(s) are on their own way." : ""}</p>
+      <p style="margin:0 0 20px">Something not right? Reach us at <a href="${SITE_URL}/contact" style="color:#7EC8B8">shopfitdrop.com/contact</a>.</p>
+      <p style="margin:0">${button(`${SITE_URL}/home`, "Shop again")}</p>`),
+    text: `Your FitDrop order from ${o.pickupName || "the store"} was delivered. Enjoy! Shop again: ${SITE_URL}/home`,
   }
 }

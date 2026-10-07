@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { connectDB } from "@/lib/mongodb"
 import { getApprovedSessionDriver } from "@/lib/driverSession"
 import Order from "@/models/Order"
+import { sendEmail, orderOnTheWayEmail, orderDeliveredEmail } from "@/lib/email"
 
 const SIGN_IN = () => NextResponse.json({ error: "Please sign in again" }, { status: 401 })
 
@@ -49,6 +50,13 @@ export async function PUT(req: NextRequest) {
     if (hasPoint) order.driverLocation = { lat, lng, updatedAt: new Date() }
     await order.save()
 
+    // Let the customer know (never blocks the driver if email fails)
+    const to = order.address?.email
+    if (to) {
+      const msg = status === "picked_up" ? orderOnTheWayEmail(order) : orderDeliveredEmail(order)
+      await sendEmail({ to, ...msg }).catch(() => {})
+    }
+
     return NextResponse.json({ success: true })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
@@ -70,6 +78,7 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Location is required to go available" }, { status: 400 })
     }
     driver.available = available
+    if (Number.isFinite(lat) && Number.isFinite(lng)) driver.lastLocation = { lat, lng, updatedAt: new Date() }
     await driver.save()
     return NextResponse.json({ available: driver.available })
   } catch (error: any) {

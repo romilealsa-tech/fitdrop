@@ -31,6 +31,8 @@ const OrderSchema = new mongoose.Schema({
   pickupCount: { type: Number, default: 1 },
   // "Fast delivery" add-on: shown as PRIORITY and first in the driver's list
   priority: { type: Boolean, default: false },
+  // Clerk user id of the customer who paid (empty for guest checkouts)
+  customerUserId: { type: String, index: true, default: "" },
   status: { type: String, default: "placed" }, // placed | assigned | picked_up | delivered
   driverId: { type: mongoose.Schema.Types.ObjectId, ref: "DriverApplication", default: null },
 }, { timestamps: true })

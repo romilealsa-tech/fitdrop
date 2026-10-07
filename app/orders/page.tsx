@@ -8,10 +8,31 @@ import { loadOrders } from "../../lib/orderHistory"
 export default function OrdersPage() {
   const [orders, setOrders] = useState<any[]>([])
 
+  const [signedIn, setSignedIn] = useState<boolean | null>(null)
+
   useEffect(() => {
-    // Read-only: orders are saved once at checkout (lib/orderHistory.ts)
-    setOrders(loadOrders())
+    // Orders made on this device (also covers checkouts made without signing in)
+    const local = loadOrders()
+    setOrders(local)
+
+    // Signed in: the account's orders, from every device, with live status
+    fetch("/api/my-orders")
+      .then(r => r.json())
+      .then(data => {
+        if (!data?.signedIn) { setSignedIn(false); return }
+        setSignedIn(true)
+        const server: any[] = data.orders || []
+        const known = new Set(server.flatMap(o => (o.pickups || []).map((p: any) => p.trackingToken)))
+        const onlyHere = local.filter(o =>
+          !(o.pickups || []).some((p: any) => known.has(p.trackingToken)) && !(o.trackingToken && known.has(o.trackingToken))
+        )
+        setOrders([...server, ...onlyHere].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()))
+      })
+      .catch(() => {})
   }, [])
+
+  const statusBadge = (status?: string) =>
+    status === "delivered" ? "Delivered ✓" : status === "on_the_way" ? "On the way 🛵" : status === "preparing" ? "Preparing" : "Delivered ✓"
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return "Recent"
@@ -30,6 +51,11 @@ export default function OrdersPage() {
           <p className="text-[#7EC8B8] uppercase tracking-widest text-xs mb-2 font-medium">Your Account</p>
           <h2 className="text-4xl font-bold text-[#E8E8EA]">Order History</h2>
           <p className="text-[#6b6b6b] mt-2 text-sm">{orders.length} order{orders.length !== 1 ? "s" : ""} total</p>
+          {signedIn === false && (
+            <p className="text-xs text-[#8a8a8e] mt-2">
+              Showing orders made on this device. <Link href="/" className="text-[#7EC8B8] hover:underline">Sign in</Link> before checkout to keep your orders on every device.
+            </p>
+          )}
         </div>
 
         {/* Empty state */}
@@ -50,7 +76,7 @@ export default function OrdersPage() {
         {/* Orders list */}
         <div className="flex flex-col gap-6">
           {orders.map((order: any, i: number) => (
-            <div key={i} className="bg-[#1C1C1E] border border-[#2B2B2E] rounded-2xl p-6 hover:border-[#7EC8B8] transition">
+            <div key={order.id || i} className="bg-[#1C1C1E] border border-[#2B2B2E] rounded-2xl p-6 hover:border-[#7EC8B8] transition">
 
               {/* Order header */}
               <div className="flex items-start justify-between mb-5">
@@ -60,6 +86,9 @@ export default function OrdersPage() {
                 </div>
                 <div className="text-right">
                   <p className="text-lg font-bold text-[#7EC8B8]">${order.total}</p>
+                  {order.status && order.status !== "delivered" && (
+                    <p className="text-xs text-[#b5b5b8] mb-1.5">{statusBadge(order.status)}</p>
+                  )}
                   {order.pickups?.length > 1 ? (
                     <div className="flex flex-col items-end gap-1.5">
                       {order.pickups.map((p: any) => (
@@ -81,7 +110,7 @@ export default function OrdersPage() {
                     </Link>
                   ) : (
                     <span className="text-xs bg-[#7EC8B8] text-[#0D0D0F] px-2 py-0.5 rounded-full font-bold">
-                      Delivered ✓
+                      {statusBadge(order.status)}
                     </span>
                   )}
                 </div>
@@ -103,7 +132,7 @@ export default function OrdersPage() {
                       <p className="text-xs text-[#6b6b6b]">Qty: {item.qty}</p>
                     </div>
                     <p className="text-sm font-semibold text-[#E8E8EA] shrink-0">
-                      ${(parseFloat(item.price.replace("$", "")) * item.qty).toFixed(2)}
+                      ${(parseFloat(String(item.price).replace("$", "")) * item.qty).toFixed(2)}
                     </p>
                   </div>
                 ))}

@@ -19,6 +19,9 @@ export async function PUT(req: NextRequest) {
     const driver = await getApprovedSessionDriver(req)
     if (!driver) return NextResponse.json({ error: "Please sign in again" }, { status: 401 })
 
+    driver.lastLocation = { lat, lng, updatedAt: new Date() }
+    await driver.save()
+
     const result = await Order.updateMany(
       { driverId: driver._id, status: { $in: ["assigned", "picked_up"] } },
       { $set: { driverLocation: { lat, lng, updatedAt: new Date() } } }

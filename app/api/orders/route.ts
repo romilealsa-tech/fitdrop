@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { connectDB } from "@/lib/mongodb"
 import Order from "@/models/Order"
-import DriverApplication from "@/models/DriverApplication"
 import { sendPushToDriver } from "@/lib/webpush"
 import { randomBytes } from "crypto"
 import { STORE_PICKUP_ADDRESSES, STORE_PICKUP_LOCATIONS, STORE_NAMES, getStoreLocations } from "@/lib/storeConfig"
@@ -9,6 +8,9 @@ import { sendEmail, newDeliveryEmail } from "@/lib/email"
 import { quotePickup } from "@/lib/pickup"
 import { getStripe } from "@/lib/stripe"
 import { cartFromMetadata, priceCart } from "@/lib/pricing"
+import { auth } from "@clerk/nextjs/server"
+import { pickNearestDriver } from "@/lib/drivers"
+import { orderConfirmationEmail } from "@/lib/email"
 
 /** Split a cart into one group per store (Zara + Uniqlo → two pickups). */
 function groupByStore(items: any[]) {
@@ -90,8 +92,10 @@ export async function POST(req: NextRequest) {
     const groupId = paymentIntentId // ties the pickups of one checkout together (and blocks duplicates)
     const groups = groupByStore(items)
 
-    const driver = await DriverApplication.findOne({ status: "approved", available: true })
-    const created: { orderId: string; trackingToken: string; storeName: string }[] = []
+    // Signed-in customers get the order saved to their account
+    const { userId } = await auth().catch(() => ({ userId: null }))
+    const created: { orderId: string; trackingToken: string; storeName: string; etaMinutes: number | null }[] = []
+    let anyAssigned = false
 
     for (const group of groups) {
       // Nearest location of THIS store that has every item of this group
@@ -104,6 +108,10 @@ export async function POST(req: NextRequest) {
       const pickupLocation = pickup ? { lat: pickup.lat, lng: pickup.lng } : STORE_PICKUP_LOCATIONS[group.slug] || null
       const pickupName = pickup?.name || STORE_NAMES[group.slug] || group.slug
       const trackingToken = randomBytes(16).toString("hex")
+
+      // Nearest available driver to THIS store
+      const driver = await pickNearestDriver(pickupLocation)
+      if (driver) anyAssigned = true
 
       const order = await Order.create({
         items: group.items,
@@ -120,9 +128,10 @@ export async function POST(req: NextRequest) {
         dropoffLocation,
         trackingToken,
         priority: isPriority,
+        customerUserId: userId || "",
         ...(driver ? { driverId: driver._id, status: "assigned" } : {}),
       })
-      created.push({ orderId: String(order._id), trackingToken, storeName: pickupName })
+      created.push({ orderId: String(order._id), trackingToken, storeName: pickupName, etaMinutes: quote.ok ? quote.etaMinutes : null })
 
       if (driver) {
         if (driver.pushSubscription) {
@@ -148,11 +157,26 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Confirmation email to the customer, with a tracking link per store
+    if (addressFields.email) {
+      await sendEmail({
+        to: String(addressFields.email),
+        ...orderConfirmationEmail({
+          firstName: String(addressFields.firstName || ""),
+          items,
+          total,
+          dropoffAddress,
+          priority: isPriority,
+          pickups: created,
+        }),
+      }).catch(() => {})
+    }
+
     return NextResponse.json({
       orderId: created[0]?.orderId,
       trackingToken: created[0]?.trackingToken,
       pickups: created, // one per store
-      assigned: !!driver,
+      assigned: anyAssigned,
     })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })

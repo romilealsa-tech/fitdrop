@@ -1,4 +1,5 @@
 import DriverApplication from "@/models/DriverApplication"
+import { distanceMiles } from "@/lib/pickup"
 
 const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
 
@@ -21,4 +22,22 @@ export async function findDriverByEmail(email: string) {
 export async function findApprovedDriver(email: string) {
   const driver = await findDriverByEmail(email)
   return driver && driver.status === "approved" ? driver : null
+}
+
+/**
+ * The approved, available driver closest to a pickup store. Drivers whose phone
+ * reported a position in the last 30 minutes are ranked by distance; if nobody
+ * has a recent position, falls back to any available driver.
+ */
+export async function pickNearestDriver(pickup: { lat: number; lng: number } | null) {
+  const candidates = await DriverApplication.find({ status: "approved", available: true })
+  if (candidates.length === 0) return null
+  if (!pickup) return candidates[0]
+  const fresh = candidates.filter(d =>
+    d.lastLocation?.updatedAt && Date.now() - new Date(d.lastLocation.updatedAt).getTime() < 30 * 60_000
+  )
+  if (fresh.length === 0) return candidates[0]
+  return fresh
+    .map(d => ({ d, miles: distanceMiles(pickup, { lat: d.lastLocation.lat, lng: d.lastLocation.lng }) }))
+    .sort((a, b) => a.miles - b.miles)[0].d
 }

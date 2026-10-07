@@ -12,6 +12,11 @@ const DriverApplicationSchema = new mongoose.Schema({
   notifiedStatus: { type: String, default: "" }, // last decision emailed to the driver (approved | rejected)
   available: { type: Boolean, default: true }, // toggled off once assigned an active delivery
   pushSubscription: { type: mongoose.Schema.Types.Mixed, default: null },
+  // Last position from the driver's phone (used to send each order to the nearest driver)
+  lastLocation: {
+    type: new mongoose.Schema({ lat: Number, lng: Number, updatedAt: Date }, { _id: false }),
+    default: null,
+  },
   // Login with an emailed 6-digit code (only the hash is stored)
   loginCodeHash: { type: String, default: "" },
   loginCodeExpires: { type: Date, default: null },
