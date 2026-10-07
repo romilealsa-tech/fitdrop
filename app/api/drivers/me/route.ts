@@ -1,19 +1,16 @@
 import { NextRequest, NextResponse } from "next/server"
 import { connectDB } from "@/lib/mongodb"
-import { findApprovedDriver } from "@/lib/drivers"
+import { getApprovedSessionDriver } from "@/lib/driverSession"
 import Order from "@/models/Order"
 
-// Public (email-identified, no login): a driver's active deliveries.
+const SIGN_IN = () => NextResponse.json({ error: "Please sign in again" }, { status: 401 })
+
+// The signed-in driver's active deliveries.
 export async function GET(req: NextRequest) {
   try {
     await connectDB()
-    const email = req.nextUrl.searchParams.get("email")?.trim().toLowerCase()
-    if (!email) return NextResponse.json({ error: "email is required" }, { status: 400 })
-
-    const driver = await findApprovedDriver(email)
-    if (!driver) {
-      return NextResponse.json({ error: "Not an approved driver" }, { status: 403 })
-    }
+    const driver = await getApprovedSessionDriver(req)
+    if (!driver) return SIGN_IN()
 
     const orders = await Order.find({
       driverId: driver._id,
@@ -26,33 +23,31 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// Public: driver advances an order's status (assigned -> picked_up -> delivered).
+// Driver advances one of THEIR orders: assigned -> picked_up -> delivered.
+const NEXT_STATUS: Record<string, string> = { assigned: "picked_up", picked_up: "delivered" }
+
 export async function PUT(req: NextRequest) {
   try {
     await connectDB()
-    const { orderId, email, status, lat, lng } = await req.json()
+    const driver = await getApprovedSessionDriver(req)
+    if (!driver) return SIGN_IN()
+
+    const { orderId, status, lat, lng } = await req.json()
     const hasPoint = Number.isFinite(lat) && Number.isFinite(lng)
+    if (!orderId || !status) return NextResponse.json({ error: "orderId and status are required" }, { status: 400 })
     if (status === "picked_up" && !hasPoint) {
       return NextResponse.json({ error: "Location is required to mark an order as picked up" }, { status: 400 })
     }
-    if (!orderId || !email || !status) {
-      return NextResponse.json({ error: "orderId, email and status are required" }, { status: 400 })
-    }
-
-    const driver = await findApprovedDriver(email)
-    if (!driver) return NextResponse.json({ error: "Not an approved driver" }, { status: 403 })
 
     const order = await Order.findOne({ _id: orderId, driverId: driver._id })
     if (!order) return NextResponse.json({ error: "Order not found for this driver" }, { status: 404 })
+    if (NEXT_STATUS[order.status] !== status) {
+      return NextResponse.json({ error: `This order can't go from ${order.status} to ${status}` }, { status: 400 })
+    }
 
     order.status = status
     if (hasPoint) order.driverLocation = { lat, lng, updatedAt: new Date() }
     await order.save()
-
-    if (status === "delivered") {
-      driver.available = true
-      await driver.save()
-    }
 
     return NextResponse.json({ success: true })
   } catch (error: any) {
@@ -60,20 +55,20 @@ export async function PUT(req: NextRequest) {
   }
 }
 
-// Public (email-identified): an approved driver goes online / offline.
-// Only available drivers get new orders assigned.
+// The signed-in driver goes online / offline. Only available drivers get new orders.
 export async function PATCH(req: NextRequest) {
   try {
     await connectDB()
-    const { email, available, lat, lng } = await req.json()
-    if (!email || typeof available !== "boolean") {
-      return NextResponse.json({ error: "email and available (true/false) are required" }, { status: 400 })
+    const driver = await getApprovedSessionDriver(req)
+    if (!driver) return SIGN_IN()
+
+    const { available, lat, lng } = await req.json()
+    if (typeof available !== "boolean") {
+      return NextResponse.json({ error: "available (true/false) is required" }, { status: 400 })
     }
     if (available && !(Number.isFinite(lat) && Number.isFinite(lng))) {
       return NextResponse.json({ error: "Location is required to go available" }, { status: 400 })
     }
-    const driver = await findApprovedDriver(email)
-    if (!driver) return NextResponse.json({ error: "Not an approved driver" }, { status: 403 })
     driver.available = available
     await driver.save()
     return NextResponse.json({ available: driver.available })

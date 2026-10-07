@@ -29,7 +29,9 @@ const LOCATION_REQUIRED = 'Location is required. Allow location for shopfitdrop.
 
 export default function DriverPage() {
   const [email, setEmail] = useState("")
-  const [stage, setStage] = useState<"enter" | "checking" | "not-approved" | "ready">("enter")
+  const [stage, setStage] = useState<"checking" | "enter" | "code" | "not-approved" | "ready">("checking")
+  const [code, setCode] = useState("")
+  const [sending, setSending] = useState(false)
   const [subscribed, setSubscribed] = useState(false)
   const [available, setAvailable] = useState(false)
   const [savingAvailable, setSavingAvailable] = useState(false)
@@ -39,21 +41,16 @@ export default function DriverPage() {
   const [locationError, setLocationError] = useState("")
   const [locationRetry, setLocationRetry] = useState(0) // bump to restart live tracking
 
-  // ?email=... comes from the "New delivery" / "approved" emails, so the driver lands signed in
-  const savedEmail = typeof window !== "undefined"
-    ? (new URLSearchParams(window.location.search).get("email") || localStorage.getItem("fitdrop_driver_email"))
-    : null
-
+  // Signed in? (the session lives in a secure cookie for 30 days)
   useEffect(() => {
-    if (savedEmail) {
-      setEmail(savedEmail)
-      checkDriver(savedEmail)
-    }
+    try { localStorage.removeItem("fitdrop_driver_email") } catch {}
+    loadSession()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const fetchOrders = useCallback(async (em: string) => {
-    const res = await fetch(`/api/drivers/me?email=${encodeURIComponent(em)}`)
+  const fetchOrders = useCallback(async () => {
+    const res = await fetch("/api/drivers/me")
+    if (res.status === 401) { setStage("enter"); return }
     if (res.ok) {
       const data = await res.json()
       setOrders(data.orders || [])
@@ -62,10 +59,10 @@ export default function DriverPage() {
 
   useEffect(() => {
     if (stage !== "ready") return
-    fetchOrders(email)
-    const interval = setInterval(() => fetchOrders(email), 8000)
+    fetchOrders()
+    const interval = setInterval(fetchOrders, 8000)
     return () => clearInterval(interval)
-  }, [stage, email, fetchOrders])
+  }, [stage, fetchOrders])
 
   // Share live location while there are active deliveries (customer tracking map).
   // Sends at most one update every 15 seconds.
@@ -83,33 +80,74 @@ export default function DriverPage() {
         fetch("/api/drivers/location", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, ...point }),
+          body: JSON.stringify(point),
         }).catch(() => {})
       },
       () => setLocationError("Location is off — turn it back on so the customer can follow the delivery."),
       { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 }
     )
     return () => navigator.geolocation.clearWatch(watchId)
-  }, [stage, hasActive, email, locationRetry])
+  }, [stage, hasActive, locationRetry])
 
-  async function checkDriver(em: string) {
+  async function loadSession() {
     setStage("checking")
-    setError("")
     try {
-      const res = await fetch(`/api/drivers/subscribe?email=${encodeURIComponent(em)}`)
-      const data = await res.json()
-      if (!data.found || !data.approved) {
-        setStage("not-approved")
-        return
-      }
+      const data = await (await fetch("/api/drivers/subscribe")).json()
+      if (!data.signedIn) { setStage("enter"); return }
+      if (!data.approved) { setStage("not-approved"); return }
+      setEmail(data.email || "")
       setSubscribed(!!data.subscribed)
       setAvailable(!!data.available)
-      localStorage.setItem("fitdrop_driver_email", em)
       setStage("ready")
     } catch {
-      setError("Something went wrong. Try again.")
       setStage("enter")
     }
+  }
+
+  async function sendCode() {
+    if (!email.trim()) return
+    setSending(true)
+    setError("")
+    try {
+      const res = await fetch("/api/drivers/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim() }),
+      })
+      if (!res.ok) throw new Error()
+      setCode("")
+      setStage("code")
+    } catch {
+      setError("Something went wrong. Try again.")
+    } finally {
+      setSending(false)
+    }
+  }
+
+  async function verifyCode() {
+    setSending(true)
+    setError("")
+    try {
+      const res = await fetch("/api/drivers/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), code }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setError(data.error || "That code didn't work."); return }
+      await loadSession()
+    } catch {
+      setError("Something went wrong. Try again.")
+    } finally {
+      setSending(false)
+    }
+  }
+
+  async function signOut() {
+    await fetch("/api/drivers/logout", { method: "POST" }).catch(() => {})
+    setOrders([])
+    setCode("")
+    setStage("enter")
   }
 
   async function toggleAvailable() {
@@ -127,7 +165,7 @@ export default function DriverPage() {
       const res = await fetch("/api/drivers/me", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, available: next, ...(point || {}) }),
+        body: JSON.stringify({ available: next, ...(point || {}) }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Could not update")
@@ -168,7 +206,7 @@ export default function DriverPage() {
       const res = await fetch("/api/drivers/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, subscription }),
+        body: JSON.stringify({ subscription }),
       })
       if (!res.ok) throw new Error("Could not save subscription")
       setSubscribed(true)
@@ -199,7 +237,7 @@ export default function DriverPage() {
       fetch("/api/drivers/location", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, ...point }),
+        body: JSON.stringify(point),
       }).catch(() => {})
     } else {
       setLocationError(LOCATION_REQUIRED)
@@ -218,13 +256,13 @@ export default function DriverPage() {
     const res = await fetch("/api/drivers/me", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ orderId, email, status, ...(point || {}) }),
+      body: JSON.stringify({ orderId, status, ...(point || {}) }),
     })
     if (!res.ok) {
       const data = await res.json().catch(() => ({}))
       setError(data.error || "Could not update the delivery. Try again.")
     }
-    fetchOrders(email)
+    fetchOrders()
   }
 
   return (
@@ -236,10 +274,14 @@ export default function DriverPage() {
         <h1 className="text-3xl font-bold mb-8 text-center">Your Deliveries</h1>
 
         {stage === "enter" && (
-          <div className="bg-[#1C1C1E] border border-[#2B2B2E] rounded-2xl p-6">
-            <p className="text-sm text-[#6b6b6b] mb-4">Enter the email you applied with.</p>
+          <form
+            onSubmit={e => { e.preventDefault(); sendCode() }}
+            className="bg-[#1C1C1E] border border-[#2B2B2E] rounded-2xl p-6"
+          >
+            <p className="text-sm text-[#6b6b6b] mb-4">Enter the email you applied with. We&apos;ll send you a 6-digit code to sign in.</p>
             <input
               type="email"
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@email.com"
@@ -247,12 +289,44 @@ export default function DriverPage() {
             />
             {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
             <button
-              onClick={() => email && checkDriver(email)}
-              className="w-full bg-[#7EC8B8] text-[#0D0D0F] py-3 rounded-full font-bold hover:bg-[#6ab5a5] transition"
+              type="submit"
+              disabled={sending || !email.trim()}
+              className="w-full bg-[#7EC8B8] text-[#0D0D0F] py-3 rounded-full font-bold hover:bg-[#6ab5a5] transition disabled:opacity-50"
             >
-              Continue
+              {sending ? "Sending…" : "Send me a code"}
             </button>
-          </div>
+          </form>
+        )}
+
+        {stage === "code" && (
+          <form
+            onSubmit={e => { e.preventDefault(); verifyCode() }}
+            className="bg-[#1C1C1E] border border-[#2B2B2E] rounded-2xl p-6"
+          >
+            <p className="text-sm text-[#b5b5b8] mb-1">If <strong className="text-[#E8E8EA]">{email}</strong> is an approved driver, we just emailed a 6-digit code.</p>
+            <p className="text-xs text-[#6b6b6b] mb-4">It can take a minute — check your spam folder too.</p>
+            <input
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+              placeholder="123456"
+              className="w-full bg-[#0D0D0F] border border-[#2B2B2E] rounded-xl px-4 py-3 text-2xl tracking-[0.5em] text-center mb-4 focus:outline-none focus:border-[#7EC8B8]"
+            />
+            {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
+            <button
+              type="submit"
+              disabled={sending || code.length !== 6}
+              className="w-full bg-[#7EC8B8] text-[#0D0D0F] py-3 rounded-full font-bold hover:bg-[#6ab5a5] transition disabled:opacity-50"
+            >
+              {sending ? "Checking…" : "Sign in"}
+            </button>
+            <div className="flex justify-between mt-4 text-xs">
+              <button type="button" onClick={() => { setError(""); setStage("enter") }} className="text-[#6b6b6b] hover:text-[#E8E8EA]">← Different email</button>
+              <button type="button" onClick={sendCode} disabled={sending} className="text-[#7EC8B8] hover:underline">Send a new code</button>
+            </div>
+          </form>
         )}
 
         {stage === "checking" && <p className="text-center text-[#6b6b6b]">Checking...</p>}
@@ -260,7 +334,7 @@ export default function DriverPage() {
         {stage === "not-approved" && (
           <div className="bg-[#1C1C1E] border border-[#2B2B2E] rounded-2xl p-6 text-center">
             <p className="text-sm text-[#6b6b6b] mb-4">
-              We couldn&apos;t find an approved driver application for that email.
+              Your driver application hasn&apos;t been approved yet. We&apos;ll email you as soon as it is.
             </p>
             <Link href="/drive" className="text-[#7EC8B8] text-sm font-semibold underline">
               Apply to drive →
@@ -270,6 +344,10 @@ export default function DriverPage() {
 
         {stage === "ready" && (
           <div>
+            <div className="flex items-center justify-between text-xs text-[#6b6b6b] mb-3">
+              <span>Signed in as {email}</span>
+              <button onClick={signOut} className="hover:text-[#E8E8EA] underline underline-offset-4">Sign out</button>
+            </div>
             {/* Online / offline — only available drivers get new orders */}
             <div className="bg-[#1C1C1E] border border-[#2B2B2E] rounded-2xl p-5 mb-4 flex items-center justify-between gap-4">
               <div>

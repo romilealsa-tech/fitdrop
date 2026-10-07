@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
 import { connectDB } from "@/lib/mongodb"
-import { findApprovedDriver } from "@/lib/drivers"
+import { getApprovedSessionDriver } from "@/lib/driverSession"
 import Order from "@/models/Order"
 
-// Driver's phone reports its position while it has active deliveries.
-// Same email-based identification as /api/drivers/me (no login yet).
+// The signed-in driver's phone reports its position while it has active deliveries.
 export async function PUT(req: NextRequest) {
   try {
-    const { email, lat, lng } = await req.json()
-    if (!email || !Number.isFinite(lat) || !Number.isFinite(lng)) {
-      return NextResponse.json({ error: "email, lat and lng are required" }, { status: 400 })
+    const { lat, lng } = await req.json()
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      return NextResponse.json({ error: "lat and lng are required" }, { status: 400 })
     }
     // Ignore positions far outside NYC (bad GPS fix or spoofing)
     if (lat < 40.4 || lat > 41.0 || lng < -74.3 || lng > -73.6) {
@@ -17,10 +16,8 @@ export async function PUT(req: NextRequest) {
     }
 
     await connectDB()
-    const driver = await findApprovedDriver(email)
-    if (!driver) {
-      return NextResponse.json({ error: "Not an approved driver" }, { status: 403 })
-    }
+    const driver = await getApprovedSessionDriver(req)
+    if (!driver) return NextResponse.json({ error: "Please sign in again" }, { status: 401 })
 
     const result = await Order.updateMany(
       { driverId: driver._id, status: { $in: ["assigned", "picked_up"] } },

@@ -21,7 +21,7 @@ function formatMinutes(min: number) {
   return m ? `${h} h ${m} min` : `${h} h`
 }
 
-function CheckoutForm({ clientSecret, onSuccess }: { clientSecret: string; onSuccess: () => void }) {
+function CheckoutForm({ clientSecret, onSuccess }: { clientSecret: string; onSuccess: (paymentIntentId: string) => void }) {
   const stripe = useStripe()
   const elements = useElements()
   const [processing, setProcessing] = useState(false)
@@ -32,7 +32,7 @@ function CheckoutForm({ clientSecret, onSuccess }: { clientSecret: string; onSuc
     setProcessing(true)
     setError("")
 
-    const { error } = await stripe.confirmPayment({
+    const { error, paymentIntent } = await stripe.confirmPayment({
       elements,
       confirmParams: { return_url: window.location.origin + "/order" },
       redirect: "if_required",
@@ -41,8 +41,11 @@ function CheckoutForm({ clientSecret, onSuccess }: { clientSecret: string; onSuc
     if (error) {
       setError(error.message || "Payment failed")
       setProcessing(false)
+    } else if (paymentIntent?.status === "succeeded") {
+      onSuccess(paymentIntent.id)
     } else {
-      onSuccess()
+      setError("Your payment is still processing. Please wait a moment and check your Orders page.")
+      setProcessing(false)
     }
   }
 
@@ -131,7 +134,10 @@ export default function CheckoutPage() {
   const tax = total * 0.08875
   const [priority, setPriority] = useState(false)
   const priorityFee = priority ? PRIORITY_FEE : 0
-  const orderTotal = total + delivery + priorityFee + tax
+  // Once payment starts, the server's numbers are the ones charged (and shown)
+  const [serverAmounts, setServerAmounts] = useState<{ subtotal: number; delivery: number; priority: number; tax: number; total: number } | null>(null)
+  const [paymentError, setPaymentError] = useState("")
+  const orderTotal = serverAmounts ? serverAmounts.total : total + delivery + priorityFee + tax
 
   const validateAddress = () => {
     const e: Record<string, string> = {}
@@ -159,22 +165,29 @@ export default function CheckoutPage() {
     if (quoteLoading) return
     if (quote && !quote.ok) return // no store has everything in the cart — message is shown
     setLoadingPayment(true)
+    setPaymentError("")
     try {
+      // Only products + quantities are sent; the server prices the order itself
       const res = await fetch("/api/stripe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: orderTotal }),
+        body: JSON.stringify({
+          items: cart.map((i: any) => ({ id: i._id || i.id, qty: i.qty })),
+          priority,
+        }),
       })
       const data = await res.json()
+      if (!res.ok || !data.clientSecret) throw new Error(data.error || "Could not start the payment. Please try again.")
+      setServerAmounts(data.amounts)
       setClientSecret(data.clientSecret)
       setStep("payment")
-    } catch (err) {
-      console.error(err)
+    } catch (err: any) {
+      setPaymentError(err.message || "Could not start the payment. Please try again.")
     }
     setLoadingPayment(false)
   }
 
-  const handlePaymentSuccess = async () => {
+  const handlePaymentSuccess = async (paymentIntentId: string) => {
     const effectiveBilling = billingSameAsDelivery ? {
       firstName: address.firstName, lastName: address.lastName,
       street: address.street, apt: address.apt,
@@ -189,7 +202,7 @@ export default function CheckoutPage() {
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: cart, total: orderTotal.toFixed(2), address: { ...address, location }, priority }),
+        body: JSON.stringify({ paymentIntentId, items: cart, address: { ...address, location } }),
       })
       const data = await res.json().catch(() => ({}))
       trackingToken = data.trackingToken || null
@@ -368,7 +381,7 @@ export default function CheckoutPage() {
               {/* Fast delivery add-on */}
               <button
                 type="button"
-                onClick={() => setPriority(p => !p)}
+                onClick={() => { setPriority(p => !p); setServerAmounts(null) }}
                 aria-pressed={priority}
                 className={`w-full text-left rounded-2xl border p-4 mb-8 flex items-center gap-4 transition ${
                   priority ? "border-[#7EC8B8] bg-[#7EC8B8]/10" : "border-[#2B2B2E] bg-[#1C1C1E] hover:border-[#6b6b6b]"
@@ -444,6 +457,7 @@ export default function CheckoutPage() {
               >
                 {loadingPayment ? "Loading payment..." : "Continue to Payment"}
               </button>
+              {paymentError && <p className="text-red-400 text-sm mt-3 text-center">{paymentError}</p>}
             </div>
           )}
 
@@ -495,18 +509,18 @@ export default function CheckoutPage() {
             </div>
             <div className="border-t border-[#2B2B2E] pt-4 flex flex-col gap-2 text-sm">
               <div className="flex justify-between text-[#6b6b6b]">
-                <span>Subtotal</span><span>${total.toFixed(2)}</span>
+                <span>Subtotal</span><span>${(serverAmounts?.subtotal ?? total).toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-[#6b6b6b]">
-                <span>Delivery</span><span>${delivery.toFixed(2)}</span>
+                <span>Delivery</span><span>${(serverAmounts?.delivery ?? delivery).toFixed(2)}</span>
               </div>
               {priority && (
                 <div className="flex justify-between text-[#7EC8B8]">
-                  <span>⚡ Fast delivery</span><span>${priorityFee.toFixed(2)}</span>
+                  <span>⚡ Fast delivery</span><span>${(serverAmounts?.priority ?? priorityFee).toFixed(2)}</span>
                 </div>
               )}
               <div className="flex justify-between text-[#6b6b6b]">
-                <span>Tax (NYC)</span><span>${tax.toFixed(2)}</span>
+                <span>Tax (NYC)</span><span>${(serverAmounts?.tax ?? tax).toFixed(2)}</span>
               </div>
               <div className="flex justify-between font-bold text-[#E8E8EA] text-base mt-2 border-t border-[#2B2B2E] pt-3">
                 <span>Total</span>

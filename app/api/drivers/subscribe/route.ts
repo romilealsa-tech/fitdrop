@@ -1,22 +1,19 @@
 import { NextRequest, NextResponse } from "next/server"
 import { connectDB } from "@/lib/mongodb"
-import { findDriverByEmail, findApprovedDriver } from "@/lib/drivers"
+import { getSessionDriver, getApprovedSessionDriver } from "@/lib/driverSession"
 
-// Public: an approved driver checks/enables push notifications by email.
-// There's no login for drivers in this MVP — email is the only identifier.
+// Who is signed in to the driver app (from the session cookie).
 export async function GET(req: NextRequest) {
   try {
     await connectDB()
-    const email = req.nextUrl.searchParams.get("email")?.trim().toLowerCase()
-    if (!email) return NextResponse.json({ error: "email is required" }, { status: 400 })
-
-    const driver = await findDriverByEmail(email)
-    if (!driver) return NextResponse.json({ found: false })
+    const driver = await getSessionDriver(req)
+    if (!driver) return NextResponse.json({ signedIn: false })
 
     return NextResponse.json({
-      found: true,
+      signedIn: true,
       approved: driver.status === "approved",
       name: driver.name,
+      email: driver.email,
       subscribed: !!driver.pushSubscription,
       available: !!driver.available,
     })
@@ -25,23 +22,18 @@ export async function GET(req: NextRequest) {
   }
 }
 
+// Save this phone's push-notification subscription for the signed-in driver.
 export async function POST(req: NextRequest) {
   try {
     await connectDB()
-    const { email, subscription } = await req.json()
-    if (!email || !subscription) {
-      return NextResponse.json({ error: "email and subscription are required" }, { status: 400 })
-    }
+    const driver = await getApprovedSessionDriver(req)
+    if (!driver) return NextResponse.json({ error: "Please sign in again" }, { status: 401 })
 
-    const driver = await findApprovedDriver(email)
-    if (!driver) {
-      return NextResponse.json({ error: "Not an approved driver" }, { status: 403 })
-    }
+    const { subscription } = await req.json()
+    if (!subscription) return NextResponse.json({ error: "subscription is required" }, { status: 400 })
 
     driver.pushSubscription = subscription
-    driver.available = true
     await driver.save()
-
     return NextResponse.json({ success: true })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })

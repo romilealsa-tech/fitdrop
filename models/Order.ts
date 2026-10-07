@@ -27,7 +27,7 @@ const OrderSchema = new mongoose.Schema({
   // Unguessable id for the customer's public tracking link (/track/<token>)
   trackingToken: { type: String, index: true, default: null },
   // One checkout with items from several stores = several pickup orders sharing a groupId
-  groupId: { type: String, index: true, default: "" },
+  groupId: { type: String, index: true, default: "" }, // = Stripe PaymentIntent id for paid orders
   pickupCount: { type: Number, default: 1 },
   // "Fast delivery" add-on: shown as PRIORITY and first in the driver's list
   priority: { type: Boolean, default: false },

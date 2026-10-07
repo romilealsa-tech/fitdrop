@@ -50,14 +50,14 @@ function layout(title: string, body: string) {
 
 export function driverApprovedEmail(name: string, email?: string) {
   const first = esc(name.split(" ")[0] || name)
-  const link = `${SITE_URL}/driver${email ? `?email=${encodeURIComponent(email)}` : ""}`
+  const link = `${SITE_URL}/driver`
   return {
     subject: "You're approved to drive with FitDrop 🎉",
     html: layout(`Welcome to the fleet, ${first}!`, `
       <p style="margin:0 0 16px">Your application to drive with FitDrop has been <strong style="color:#7EC8B8">approved</strong>. Here's how to start getting deliveries:</p>
       <ol style="margin:0 0 20px;padding-left:20px">
         <li style="margin-bottom:8px">Open the driver app on your phone with the button below.</li>
-        <li style="margin-bottom:8px">Sign in with the <strong>same email</strong> you applied with.</li>
+        <li style="margin-bottom:8px">Sign in with the <strong>same email</strong> you applied with &mdash; we'll email you a 6-digit code.</li>
         <li style="margin-bottom:8px">Turn on the <strong>Available</strong> switch.</li>
         <li>Allow <strong>notifications</strong> and <strong>location</strong> so you get new orders and customers can follow their delivery.</li>
       </ol>
@@ -90,7 +90,7 @@ export function newDeliveryEmail(o: {
 }) {
   const first = esc(o.driverName.split(" ")[0] || o.driverName)
   // Link opens the driver app already signed in with their email
-  const link = `${SITE_URL}/driver?email=${encodeURIComponent(o.driverEmail)}`
+  const link = `${SITE_URL}/driver`
   const row = (label: string, value: string) =>
     `<tr><td style="padding:6px 0;color:#6b6b6b;font-size:13px;width:90px;vertical-align:top">${label}</td><td style="padding:6px 0;color:#E8E8EA;font-size:15px">${esc(value)}</td></tr>`
   return {
@@ -106,5 +106,17 @@ export function newDeliveryEmail(o: {
       <p style="margin:0 0 24px"><a href="${link}" style="display:inline-block;background:#7EC8B8;color:#0D0D0F;text-decoration:none;font-weight:700;padding:12px 24px;border-radius:999px">Open delivery</a></p>
       <p style="margin:0;font-size:13px;color:#6b6b6b">Head to the store, then tap “Picked up” in the driver app so the customer can follow you.</p>`),
     text: `${o.priority ? "PRIORITY (fast delivery) — do this one first!\n\n" : ""}New FitDrop delivery!\n\nStore: ${o.storeName}\nPickup: ${o.pickupAddress}\nDrop-off: ${o.dropoffAddress}\nItems: ${o.itemCount}\n\nOpen: ${link}`,
+  }
+}
+
+export function driverLoginCodeEmail(name: string, code: string) {
+  const first = esc(name.split(" ")[0] || name)
+  return {
+    subject: `${code} is your FitDrop driver code`,
+    html: layout(`Hi ${first}, here's your code`, `
+      <p style="margin:0 0 16px">Enter this code in the FitDrop driver app to sign in:</p>
+      <p style="margin:0 0 20px;font-size:34px;font-weight:700;letter-spacing:10px;color:#7EC8B8">${code}</p>
+      <p style="margin:0;font-size:13px;color:#6b6b6b">It expires in 10 minutes. If you didn't ask for it, you can ignore this email.</p>`),
+    text: `Your FitDrop driver code is ${code}. It expires in 10 minutes. If you didn't ask for it, ignore this email.`,
   }
 }

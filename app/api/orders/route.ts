@@ -7,6 +7,8 @@ import { randomBytes } from "crypto"
 import { STORE_PICKUP_ADDRESSES, STORE_PICKUP_LOCATIONS, STORE_NAMES, getStoreLocations } from "@/lib/storeConfig"
 import { sendEmail, newDeliveryEmail } from "@/lib/email"
 import { quotePickup } from "@/lib/pickup"
+import { getStripe } from "@/lib/stripe"
+import { cartFromMetadata, priceCart } from "@/lib/pricing"
 
 /** Split a cart into one group per store (Zara + Uniqlo → two pickups). */
 function groupByStore(items: any[]) {
@@ -18,19 +20,63 @@ function groupByStore(items: any[]) {
   return [...groups.entries()].map(([slug, items]) => ({ slug, items }))
 }
 
-// Public: called right after a successful Stripe payment. Creates ONE pickup order per
-// store in the cart (each with its own nearest store, ETA and tracking link) and
-// auto-assigns them to the first available approved driver.
+// Called right after payment. Only works with a REAL, successful Stripe payment:
+// the server checks the payment with Stripe and builds the order from what was
+// actually paid for (never from prices or totals sent by the browser).
+// Creates ONE pickup order per store in the cart (each with its own nearest store,
+// ETA and tracking link) and auto-assigns them to the first available approved driver.
 export async function POST(req: NextRequest) {
   try {
     await connectDB()
-    const { items, total, address, priority } = await req.json()
+    const { paymentIntentId, items: clientItems, address } = await req.json()
 
-    if (!items?.length || !total || !address) {
-      return NextResponse.json({ error: "items, total and address are required" }, { status: 400 })
+    if (!paymentIntentId || typeof paymentIntentId !== "string" || !address) {
+      return NextResponse.json({ error: "paymentIntentId and address are required" }, { status: 400 })
     }
 
-    const isPriority = priority === true
+    // 1. The payment must exist and have succeeded
+    let pi
+    try {
+      pi = await getStripe().paymentIntents.retrieve(paymentIntentId)
+    } catch {
+      return NextResponse.json({ error: "Payment not found" }, { status: 402 })
+    }
+    if (pi.status !== "succeeded") {
+      return NextResponse.json({ error: "Payment has not been completed" }, { status: 402 })
+    }
+
+    // 2. One payment = one order. Retries (refresh, double click) get the same order back.
+    const existing = await Order.find({ groupId: paymentIntentId }).lean() as any[]
+    if (existing.length > 0) {
+      return NextResponse.json({
+        orderId: String(existing[0]._id),
+        trackingToken: existing[0].trackingToken,
+        pickups: existing.map(o => ({ orderId: String(o._id), trackingToken: o.trackingToken, storeName: o.pickupName })),
+        assigned: existing.some(o => !!o.driverId),
+      })
+    }
+
+    // 3. Items = exactly what was paid for (from the payment's metadata, priced from the DB)
+    const paidLines = cartFromMetadata(pi.metadata as Record<string, string>)
+    const isPriority = pi.metadata?.priority === "1"
+    const priced = await priceCart(paidLines, isPriority)
+    if (priced.totalCents !== pi.amount_received && priced.totalCents !== pi.amount) {
+      // Prices changed between payment and now — keep the paid amount, just log it
+      console.warn(`[orders] price drift for ${paymentIntentId}: paid ${pi.amount}, now ${priced.totalCents}`)
+    }
+    // Keep the size/color label the customer chose (display only)
+    const label = new Map(
+      (Array.isArray(clientItems) ? clientItems : []).map((i: any) => [String(i?._id || i?.id || ""), String(i?.name || "")])
+    )
+    const items = priced.lines.map(l => ({
+      id: l.id,
+      name: label.get(l.id) || l.name,
+      store: l.store,
+      slug: l.slug,
+      price: `$${(l.priceCents / 100).toFixed(2)}`,
+      qty: l.qty,
+    }))
+    const total = (pi.amount / 100).toFixed(2)
     const dropoffAddress = [address.street, address.apt, address.city, address.state, address.zip]
       .filter(Boolean).join(", ")
 
@@ -41,7 +87,7 @@ export async function POST(req: NextRequest) {
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { location: _omit, ...addressFields } = address
-    const groupId = randomBytes(8).toString("hex") // ties the pickups of one checkout together
+    const groupId = paymentIntentId // ties the pickups of one checkout together (and blocks duplicates)
     const groups = groupByStore(items)
 
     const driver = await DriverApplication.findOne({ status: "approved", available: true })
