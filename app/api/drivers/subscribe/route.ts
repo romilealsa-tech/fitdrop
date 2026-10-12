@@ -14,7 +14,8 @@ export async function GET(req: NextRequest) {
       approved: driver.status === "approved",
       name: driver.name,
       email: driver.email,
-      subscribed: !!driver.pushSubscription,
+      subscribed: !!driver.pushSubscription || !!driver.nativePushToken,
+      nativeSubscribed: !!driver.nativePushToken,
       available: !!driver.available,
     })
   } catch (error: any) {
@@ -29,10 +30,19 @@ export async function POST(req: NextRequest) {
     const driver = await getApprovedSessionDriver(req)
     if (!driver) return NextResponse.json({ error: "Please sign in again" }, { status: 401 })
 
-    const { subscription } = await req.json()
-    if (!subscription) return NextResponse.json({ error: "subscription is required" }, { status: 400 })
+    const { subscription, nativeToken, platform } = await req.json()
 
-    driver.pushSubscription = subscription
+    if (nativeToken) {
+      // Installed FitDrop app (iPhone / Android)
+      if (typeof nativeToken !== "string" || nativeToken.length > 4096 || !["ios", "android"].includes(platform)) {
+        return NextResponse.json({ error: "Invalid device token" }, { status: 400 })
+      }
+      driver.nativePushToken = { token: nativeToken, platform }
+    } else if (subscription) {
+      driver.pushSubscription = subscription
+    } else {
+      return NextResponse.json({ error: "subscription is required" }, { status: 400 })
+    }
     await driver.save()
     return NextResponse.json({ success: true })
   } catch (error: any) {

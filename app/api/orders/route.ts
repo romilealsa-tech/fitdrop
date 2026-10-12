@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { connectDB } from "@/lib/mongodb"
 import Order from "@/models/Order"
 import { sendPushToDriver } from "@/lib/webpush"
+import { sendNativePush } from "@/lib/nativePush"
 import { randomBytes } from "crypto"
 import { STORE_PICKUP_ADDRESSES, STORE_PICKUP_LOCATIONS, STORE_NAMES, getStoreLocations } from "@/lib/storeConfig"
 import { sendEmail, newDeliveryEmail } from "@/lib/email"
@@ -134,12 +135,16 @@ export async function POST(req: NextRequest) {
       created.push({ orderId: String(order._id), trackingToken, storeName: pickupName, etaMinutes: quote.ok ? quote.etaMinutes : null })
 
       if (driver) {
+        const pushPayload = {
+          title: isPriority ? "⚡ PRIORITY FitDrop delivery — do this one first" : "🛵 New FitDrop delivery",
+          body: `Pickup: ${pickupName}\nDrop-off: ${dropoffAddress}`,
+          url: "/driver",
+        }
+        if (driver.nativePushToken) {
+          await sendNativePush(driver.nativePushToken, pushPayload).catch(() => false)
+        }
         if (driver.pushSubscription) {
-          await sendPushToDriver(driver.pushSubscription, {
-            title: isPriority ? "⚡ PRIORITY FitDrop delivery — do this one first" : "🛵 New FitDrop delivery",
-            body: `Pickup: ${pickupName}\nDrop-off: ${dropoffAddress}`,
-            url: "/driver",
-          }).catch(() => {})
+          await sendPushToDriver(driver.pushSubscription, pushPayload).catch(() => {})
         }
         // Email works on every phone with no setup (iPhone web push needs a Home Screen install)
         await sendEmail({

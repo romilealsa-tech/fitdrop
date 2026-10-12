@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">FitDrop</string>
+    <string name="title_activity_main">FitDrop</string>
+    <string name="package_name">com.fitdrop.app</string>
+    <string name="custom_url_scheme">com.fitdrop.app</string>
+</resources>

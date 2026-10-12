@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import DeliveryMap from "../components/DeliveryMap"
 import { navigationUrl, hasMapsKey } from "@/lib/googleMaps"
+import { isNativeApp, registerNativePush } from "@/lib/nativeApp"
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4)
@@ -33,6 +34,7 @@ export default function DriverPage() {
   const [code, setCode] = useState("")
   const [sending, setSending] = useState(false)
   const [subscribed, setSubscribed] = useState(false)
+  const [nativeApp, setNativeApp] = useState(false)
   const [available, setAvailable] = useState(false)
   const [savingAvailable, setSavingAvailable] = useState(false)
   const [orders, setOrders] = useState<Order[]>([])
@@ -96,8 +98,15 @@ export default function DriverPage() {
       if (!data.signedIn) { setStage("enter"); return }
       if (!data.approved) { setStage("not-approved"); return }
       setEmail(data.email || "")
-      setSubscribed(!!data.subscribed)
       setAvailable(!!data.available)
+      if (isNativeApp()) {
+        setNativeApp(true)
+        setSubscribed(!!data.nativeSubscribed)
+        // Refresh this phone's token quietly if notifications were already allowed
+        registerNativePush(true).then(r => { if (r.ok) setSubscribed(true) }).catch(() => {})
+      } else {
+        setSubscribed(!!data.subscribed)
+      }
       setStage("ready")
     } catch {
       setStage("enter")
@@ -159,7 +168,10 @@ export default function DriverPage() {
       let point: { lat: number; lng: number } | null = null
       if (next) {
         point = await getLocation()
-        if (!point) { setError(LOCATION_REQUIRED); return }
+        if (!point) {
+          setError(isNativeApp() ? "Location is required. Open Settings → FitDrop → Location → While Using the App, then try again." : LOCATION_REQUIRED)
+          return
+        }
         setMyLocation(point)
       }
       const res = await fetch("/api/drivers/me", {
@@ -180,6 +192,13 @@ export default function DriverPage() {
   async function enableNotifications() {
     setError("")
     try {
+      // Installed FitDrop app: one tap, no Home Screen steps
+      if (isNativeApp()) {
+        const result = await registerNativePush(false)
+        if (!result.ok) { setError(result.error || "Could not turn on notifications."); return }
+        setSubscribed(true)
+        return
+      }
       if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
         // iPhone/iPad: Safari only allows web push once the page is installed to the Home Screen
         const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
@@ -372,7 +391,14 @@ export default function DriverPage() {
             {error && <p className="text-red-400 text-sm mb-4 text-center">{error}</p>}
 
             {/* Optional extra: push notifications (Android, or iPhone Home Screen app) */}
-            {!subscribed ? (
+            {!subscribed && nativeApp ? (
+              <button
+                onClick={enableNotifications}
+                className="w-full bg-[#7EC8B8] text-[#0D0D0F] py-3 rounded-full font-bold text-sm hover:bg-[#6ab5a5] transition mb-6"
+              >
+                🔔 Turn on notifications
+              </button>
+            ) : !subscribed ? (
               <button
                 onClick={enableNotifications}
                 className="w-full text-xs text-[#6b6b6b] hover:text-[#E8E8EA] underline underline-offset-4 mb-6"

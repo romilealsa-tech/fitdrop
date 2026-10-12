@@ -1,0 +1,77 @@
+# FitDrop native apps (Capacitor). Builds run on Codemagic's Macs — nothing to install locally.
+# The app loads https://www.shopfitdrop.com, so normal site changes go live without a new build.
+# Rebuild only when native settings change (icon, permissions, plugins).
+
+workflows:
+  ios-testflight:
+    name: iPhone → TestFlight
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      app_store_connect: FitDrop App Store Connect   # name of the API key you add in Codemagic → Team → Integrations
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.fitdrop.app
+      node: 20
+      xcode: latest
+    triggering:
+      events: []   # start builds by hand from Codemagic
+    scripts:
+      - name: Install
+        script: npm ci
+      - name: App icon and splash
+        script: npx --yes @capacitor/assets@3 generate --ios --iconBackgroundColor '#0D0D0F' --splashBackgroundColor '#0D0D0F'
+      - name: Sync Capacitor
+        script: npx cap sync ios
+      - name: Build number
+        script: |
+          sed -i '' "s/CURRENT_PROJECT_VERSION = [0-9]*;/CURRENT_PROJECT_VERSION = $BUILD_NUMBER;/" ios/App/App.xcodeproj/project.pbxproj
+      - name: Signing
+        script: xcode-project use-profiles
+      - name: Build
+        script: xcode-project build-ipa --project ios/App/App.xcodeproj --scheme App
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+
+  android-play:
+    name: Android → Google Play (internal testing)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      android_signing:
+        - fitdrop_upload_key        # keystore reference created in Codemagic → Team → Code signing identities
+      groups:
+        - firebase                  # GOOGLE_SERVICES_JSON (base64 of google-services.json)
+        - google_play               # GCLOUD_SERVICE_ACCOUNT_CREDENTIALS (Play Console service account JSON)
+      node: 20
+      java: 21
+    triggering:
+      events: []
+    scripts:
+      - name: Install
+        script: npm ci
+      - name: App icon and splash
+        script: npx --yes @capacitor/assets@3 generate --android --iconBackgroundColor '#0D0D0F' --splashBackgroundColor '#0D0D0F'
+      - name: Sync Capacitor
+        script: npx cap sync android
+      - name: Firebase config (push notifications)
+        script: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            echo "$GOOGLE_SERVICES_JSON" | base64 --decode > android/app/google-services.json
+          else
+            echo "GOOGLE_SERVICES_JSON not set — Android push will not work in this build"
+          fi
+      - name: Build app bundle
+        script: cd android && ./gradlew bundleRelease
+    artifacts:
+      - android/app/build/outputs/**/*.aab
+    publishing:
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: internal
+        submit_as_draft: true
